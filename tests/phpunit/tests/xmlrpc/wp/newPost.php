@@ -299,7 +299,6 @@ class Tests_XMLRPC_wp_newPost extends WP_XMLRPC_UnitTestCase {
 	 * @ticket 28601
 	 */
 	function test_invalid_post_date_does_not_fatal() {
-		$this->setExpectedIncorrectUsage( 'mysql2date' );
 		$this->make_user_by_role( 'author' );
 		$date_string = 'invalid_date';
 		$post = array( 'post_title' => 'test', 'post_content' => 'test', 'post_date' => $date_string );
@@ -313,7 +312,6 @@ class Tests_XMLRPC_wp_newPost extends WP_XMLRPC_UnitTestCase {
 	 * @ticket 28601
 	 */
 	function test_invalid_post_date_gmt_does_not_fatal() {
-		$this->setExpectedIncorrectUsage( 'mysql2date' );
 		$this->make_user_by_role( 'author' );
 		$date_string = 'invalid date';
 		$post = array( 'post_title' => 'test', 'post_content' => 'test', 'post_date_gmt' => $date_string );

@@ -671,25 +671,16 @@ login_footer('user_pass');
 break;
 
 case 'register' :
-	/**
-	 * Filter the the is_multisite returned value.
-	 *
-	 * @since 4.5
-	 *
-	 * @param bool is_multisite().
-	 */
-	 if ( apply_filters( 'require_wp_signup', is_multisite() ) ) {
+	if ( is_multisite() ) {
 		/**
-		 * Filter the Multi-site sign up URL.
+		 * Filter the Multisite sign up URL.
 		 *
 		 * @since 3.0.0
 		 *
 		 * @param string $sign_up_url The sign up URL.
 		 */
-		if ( wp_redirect( apply_filters( 'wp_signup_location', network_site_url( 'wp-signup.php' ) ) ) ){
-			exit;
-		};
-
+		wp_redirect( apply_filters( 'wp_signup_location', network_site_url( 'wp-signup.php' ) ) );
+		exit;
 	}
 
 	if ( !get_option('users_can_register') ) {

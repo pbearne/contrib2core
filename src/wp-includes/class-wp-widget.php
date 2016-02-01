@@ -183,13 +183,10 @@ class WP_Widget {
 	 * @param string $field_name Field name
 	 * @return string Name attribute for $field_name
 	 */
-	public function get_field_name( $field_name ) {
-		if ( ! preg_match( '/]$/', $field_name ) ) {
+	public function get_field_name($field_name) {
+		if ( false === $pos = strpos( $field_name, '[' ) ) {
 			return 'widget-' . $this->id_base . '[' . $this->number . '][' . $field_name . ']';
 		} else {
-			if ( false === $pos = strpos( $field_name, '[' ) ) {
-				return 'widget-' . $this->id_base . '[' . $this->number . '][' . $field_name;
-			}
 			return 'widget-' . $this->id_base . '[' . $this->number . '][' . substr_replace( $field_name, '][', $pos, strlen( '[' ) );
 		}
 	}

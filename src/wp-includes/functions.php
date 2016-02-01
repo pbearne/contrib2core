@@ -21,32 +21,24 @@ require( ABSPATH . WPINC . '/option.php' );
  * @param string $format    Format of the date to return.
  * @param string $date      Date string to convert.
  * @param bool   $translate Whether the return date should be translated. Default true.
- * @return string|int|bool|false Formatted date string or Unix timestamp. False if $date is empty.
+ * @return string|int|bool Formatted date string or Unix timestamp. False if $date is empty.
  */
 function mysql2date( $format, $date, $translate = true ) {
-
-	if ( empty( $date ) ) {
-		_doing_it_wrong( 'mysql2date' , 'empty string passed', '4.4.0' );
+	if ( empty( $date ) )
 		return false;
-	}
 
-	if ( 'G' === $format ) {
+	if ( 'G' == $format )
 		return strtotime( $date . ' +0000' );
-	}
 
 	$i = strtotime( $date );
-	if ( false === $i ) {
-		_doing_it_wrong( 'mysql2date' , 'bad date passed!', '4.4.0' );
-	}
-	if ( 'U' === $format ) {
-		return $i;
-	}
 
-	if ( $translate ) {
+	if ( 'U' == $format )
+		return $i;
+
+	if ( $translate )
 		return date_i18n( $format, $i );
-	} else {
+	else
 		return date( $format, $i );
-	}
 }
 
 /**

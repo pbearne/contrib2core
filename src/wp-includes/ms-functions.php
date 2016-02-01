@@ -969,18 +969,10 @@ function wpmu_activate_signup($key) {
 
 	$user_id = username_exists($signup->user_login);
 
-	if ( ! $user_id ) {
-		$user_id = wpmu_create_user( $signup->user_login, $password, $signup->user_email );
-	} else {
-		/**
-		 * allow the suppression of errors if user already exists.
-		 *
-		 * @since 4.5
-		 *
-		 * @param WP_Error
-		 */
-		$user_already_exists = apply_filters( '_wpmu_activate_existing_error_', true, $signup );
-	}
+	if ( ! $user_id )
+		$user_id = wpmu_create_user($signup->user_login, $password, $signup->user_email);
+	else
+		$user_already_exists = true;
 
 	if ( ! $user_id )
 		return new WP_Error('create_user', __('Could not create user'), $signup);

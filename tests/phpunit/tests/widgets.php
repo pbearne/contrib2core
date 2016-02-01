@@ -351,18 +351,6 @@ class Tests_Widgets extends WP_UnitTestCase {
 				'widget-foo[2][posttypes][4][][6]',
 				'posttypes[4][][6]',
 			),
-			array(
-				'widget-foo[2][posttypes][name]',
-				'posttypes][name',
-			),
-			array(
-				'widget-foo[2][][title]',
-				'[title]',
-			),
-			array(
-				'widget-foo[2][title]',
-				'title]',
-			),
 		);
 	}
 

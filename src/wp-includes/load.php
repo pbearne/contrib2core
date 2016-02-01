@@ -560,24 +560,8 @@ function wp_get_active_and_valid_plugins() {
 		array_unshift( $plugins, ABSPATH . 'my-hacks.php' );
 	}
 
-	$is_activate = preg_match( '/\/wp-activate\.php/', $_SERVER['REQUEST_URI'] );
-	if ( empty( $active_plugins ) || ( wp_installing() && ! $is_activate ) ) {
+	if ( empty( $active_plugins ) || wp_installing() )
 		return $plugins;
-	} elseif ( $is_activate ) {
-		/**
-		 * Filter to allow selective loading of plugin when loading wp-activate.php on multi-site.
-		 * move the plugin needed from the $active_plugins to the return $plugin array
-		 *
-		 * @since 4.5
-		 *
-		 * @param array empty array.
-		 * @param array of plugins that can be loaded loaded.
-		 */
-		$active_plugins = apply_filters( 'wpmu_activate_plugins', $plugins, $active_plugins );
-		if ( empty( $active_plugins ) ) {
-			return $plugins;
-		}
-	}
 
 	$network_plugins = is_multisite() ? wp_get_active_network_plugins() : false;
 
