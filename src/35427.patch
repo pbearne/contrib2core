@@ -1,0 +1,103 @@
+Index: wp-admin/user-new.php
+===================================================================
+--- wp-admin/user-new.php	(revision 36252)
++++ wp-admin/user-new.php	(working copy)
+@@ -144,7 +144,9 @@
+ 				add_filter( 'wpmu_signup_user_notification', '__return_false' ); // Disable confirmation email
+ 				add_filter( 'wpmu_welcome_user_notification', '__return_false' ); // Disable welcome email
+ 			}
+-			wpmu_signup_user( $new_user_login, $new_user_email, array( 'add_to_blog' => $wpdb->blogid, 'new_role' => $_REQUEST['role'] ) );
++
++			/** This filter is documented in wp-signup.php */
++			wpmu_signup_user( $new_user_login, $new_user_email, apply_filters( 'add_signup_meta', array( 'add_to_blog' => $wpdb->blogid, 'new_role' => $_REQUEST['role'] ) ) );
+ 			if ( isset( $_POST[ 'noconfirmation' ] ) && current_user_can( 'manage_network_users' ) ) {
+ 				$key = $wpdb->get_var( $wpdb->prepare( "SELECT activation_key FROM {$wpdb->signups} WHERE user_login = %s AND user_email = %s", $new_user_login, $new_user_email ) );
+ 				wpmu_activate_signup( $key );
+Index: wp-includes/ms-functions.php
+===================================================================
+--- wp-includes/ms-functions.php	(revision 36252)
++++ wp-includes/ms-functions.php	(working copy)
+@@ -717,8 +717,18 @@
+ 	$user = preg_replace( '/\s+/', '', sanitize_user( $user, true ) );
+ 	$user_email = sanitize_email( $user_email );
+ 	$key = substr( md5( time() . rand() . $user_email ), 0, 16 );
+-	$meta = serialize($meta);
+ 
++	/**
++	 * Filter meta variables used for user signup for future activation.
++	 *
++	 * @since 4.5.0
++	 *
++	 * @param array $meta {
++	 *     An array of default site meta variables.
++	 * }
++	 */
++	$meta = serialize( apply_filters( 'wpmu_signup_user_meta', $meta, $user, $user_email ) );
++
+ 	$wpdb->insert( $wpdb->signups, array(
+ 		'domain' => '',
+ 		'path' => '',
+@@ -952,29 +962,40 @@
+ function wpmu_activate_signup($key) {
+ 	global $wpdb;
+ 
+-	$signup = $wpdb->get_row( $wpdb->prepare("SELECT * FROM $wpdb->signups WHERE activation_key = %s", $key) );
++	$signup = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $wpdb->signups WHERE activation_key = %s", $key ) );
+ 
+-	if ( empty( $signup ) )
++	if ( empty( $signup ) ) {
+ 		return new WP_Error( 'invalid_key', __( 'Invalid activation key.' ) );
++	}
+ 
+ 	if ( $signup->active ) {
+-		if ( empty( $signup->domain ) )
++		if ( empty( $signup->domain ) ) {
+ 			return new WP_Error( 'already_active', __( 'The user is already active.' ), $signup );
+-		else
++		} else {
+ 			return new WP_Error( 'already_active', __( 'The site is already active.' ), $signup );
++		}
+ 	}
+ 
+-	$meta = maybe_unserialize($signup->meta);
++	$meta     = maybe_unserialize( $signup->meta );
+ 	$password = wp_generate_password( 12, false );
+ 
+-	$user_id = username_exists($signup->user_login);
++	$user_id = username_exists( $signup->user_login );
+ 
++	if ( ! $user_id ) {
++		$user_id = wpmu_create_user( $signup->user_login, $password, $signup->user_email );
++	} else {
++		$wpdb->update( $wpdb->signups, array( 'active' => 1, 'activated' => $now ), array( 'activation_key' => $key ) );
++	}
++		/**
++		 * allow the suppression of errors if user already exists.
++		 *
++		 * @since 4.5
++		 *
++		 * @param WP_Error
++		 */
++		$user_already_exists = apply_filters('_wpmu_activate_existing_error_', true, $signup  );
++	}
+ 	if ( ! $user_id )
+-		$user_id = wpmu_create_user($signup->user_login, $password, $signup->user_email);
+-	else
+-		$user_already_exists = true;
+-
+-	if ( ! $user_id )
+ 		return new WP_Error('create_user', __('Could not create user'), $signup);
+ 
+ 	$now = current_time('mysql', true);
+@@ -982,8 +1003,9 @@
+ 	if ( empty($signup->domain) ) {
+ 		$wpdb->update( $wpdb->signups, array('active' => 1, 'activated' => $now), array('activation_key' => $key) );
+ 
+-		if ( isset( $user_already_exists ) )
+-			return new WP_Error( 'user_already_exists', __( 'That username is already activated.' ), $signup);
++		if ( isset( $user_already_exists ) ){
++			return new WP_Error( 'user_already_exists', __( 'That username is already activated.' ), $signup, get_defined_vars() );
++		}
+ 
+ 		/**
+ 		 * Fires immediately after a new user is activated.

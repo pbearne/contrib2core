@@ -1,0 +1,20 @@
+Index: wp-admin/user-new.php
+===================================================================
+--- wp-admin/user-new.php	(revision 36252)
++++ wp-admin/user-new.php	(working copy)
+@@ -144,7 +144,14 @@
+ 				add_filter( 'wpmu_signup_user_notification', '__return_false' ); // Disable confirmation email
+ 				add_filter( 'wpmu_welcome_user_notification', '__return_false' ); // Disable welcome email
+ 			}
+-			wpmu_signup_user( $new_user_login, $new_user_email, array( 'add_to_blog' => $wpdb->blogid, 'new_role' => $_REQUEST['role'] ) );
++			/**
++			 * Filter the user_meta passed to wpmu_signup_user.
++			 *
++			 * @since 4.5
++			 *
++			 * @param array blog id to be added to and new_role.
++			 */
++			wpmu_signup_user( $new_user_login, $new_user_email, apply_filters( 'add_signup_meta', array( 'add_to_blog' => $wpdb->blogid, 'new_role' => $_REQUEST['role'] ) ) );
+ 			if ( isset( $_POST[ 'noconfirmation' ] ) && current_user_can( 'manage_network_users' ) ) {
+ 				$key = $wpdb->get_var( $wpdb->prepare( "SELECT activation_key FROM {$wpdb->signups} WHERE user_login = %s AND user_email = %s", $new_user_login, $new_user_email ) );
+ 				wpmu_activate_signup( $key );
