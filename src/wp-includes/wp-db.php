@@ -3093,6 +3093,34 @@ class wpdb {
 		wp_die($message);
 	}
 
+
+	/**
+	 * Closes the current database connection.
+	 *
+	 * @since 4.5.0
+	 * @access public.
+	 *
+	 * @return bool True if the connection was successfully closed, false if it wasn't,
+	 *              or the connection doesn't exist.
+	 */
+	public function close() {
+		if ( ! $this->dbh ) {
+			return false;
+		}
+
+		if ( $this->use_mysqli ) {
+			$closed = mysqli_close( $this->dbh );
+		} else {
+			$closed = mysql_close( $this->dbh );
+		}
+
+		if ( $closed ) {
+			$this->dbh = null;
+		}
+
+		return $closed;
+	}
+
 	/**
 	 * Whether MySQL database is at least the required minimum version.
 	 *
@@ -3208,7 +3236,7 @@ class wpdb {
 	}
 
 	/**
-	 * The database version number.
+	 * Retrieves the MySQL server version.
 	 *
 	 * @since 2.7.0
 	 *

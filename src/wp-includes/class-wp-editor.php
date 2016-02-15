@@ -779,6 +779,7 @@ final class _WP_Editors {
 
 		if ( in_array('wplink', self::$plugins, true) || in_array('link', self::$qt_buttons, true) ) {
 			wp_enqueue_script('wplink');
+			wp_enqueue_script( 'jquery-ui-autocomplete' );
 		}
 
 		if ( self::$old_dfw_compat ) {
@@ -1042,6 +1043,7 @@ final class _WP_Editors {
 			'No alignment' => __( 'No alignment' ), // Tooltip for the 'alignnone' button in the image toolbar
 			'Remove' => __( 'Remove' ), // Tooltip for the 'remove' button in the image toolbar
 			'Edit ' => __( 'Edit' ), // Tooltip for the 'edit' button in the image toolbar
+			'Paste URL or type to search' => __( 'Paste URL or type to search' ), // Placeholder for the inline link dialog
 
 			// Shortcuts help modal
 			'Keyboard Shortcuts' => __( 'Keyboard Shortcuts' ),

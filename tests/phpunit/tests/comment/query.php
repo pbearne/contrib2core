@@ -1618,6 +1618,7 @@ class Tests_Comment_Query extends WP_UnitTestCase {
 	public function test_post_type_array() {
 		register_post_type( 'post-type-1' );
 		register_post_type( 'post-type-2' );
+		register_post_type( 'post-type-3' );
 
 		$p1 = self::factory()->post->create( array( 'post_type' => 'post-type-1' ) );
 		$p2 = self::factory()->post->create( array( 'post_type' => 'post-type-2' ) );
@@ -1634,9 +1635,6 @@ class Tests_Comment_Query extends WP_UnitTestCase {
 		) );
 
 		$this->assertEqualSets( array_merge( $c1, $c3 ), $found );
-
-		_unregister_post_type( 'post-type-1' );
-		_unregister_post_type( 'post-type-2' );
 	}
 
 	public function test_post_name_single_value() {
@@ -1752,6 +1750,84 @@ class Tests_Comment_Query extends WP_UnitTestCase {
 	}
 
 	/**
+	 * @ticket 35512
+	 */
+	public function test_post_type_any_should_override_other_post_types() {
+		register_post_type( 'post-type-1', array( 'exclude_from_search' => false ) );
+		register_post_type( 'post-type-2', array( 'exclude_from_search' => false ) );
+
+		$p1 = self::factory()->post->create( array( 'post_type' => 'post-type-1' ) );
+		$p2 = self::factory()->post->create( array( 'post_type' => 'post-type-2' ) );
+
+		$c1 = self::factory()->comment->create_post_comments( $p1, 1 );
+		$c2 = self::factory()->comment->create_post_comments( $p2, 1 );
+
+		$q = new WP_Comment_Query();
+		$found = $q->query( array(
+			'fields' => 'ids',
+			'post_type' => array( 'any', 'post-type-1' ),
+		) );
+		$this->assertEqualSets( array_merge( $c1, $c2 ), $found );
+	}
+
+	/**
+	 * @ticket 35512
+	 */
+	public function test_post_type_any_as_part_of_an_array_of_post_types() {
+		register_post_type( 'post-type-1', array( 'exclude_from_search' => false ) );
+		register_post_type( 'post-type-2', array( 'exclude_from_search' => false ) );
+
+		$p1 = self::factory()->post->create( array( 'post_type' => 'post-type-1' ) );
+		$p2 = self::factory()->post->create( array( 'post_type' => 'post-type-2' ) );
+
+		$c1 = self::factory()->comment->create_post_comments( $p1, 1 );
+		$c2 = self::factory()->comment->create_post_comments( $p2, 1 );
+
+		$q = new WP_Comment_Query();
+		$found = $q->query( array(
+			'fields' => 'ids',
+			'post_type' => array( 'any' ),
+		) );
+		$this->assertEqualSets( array_merge( $c1, $c2 ), $found );
+	}
+
+	/**
+	 * @ticket 35512
+	 */
+	public function test_post_status_any_should_override_other_post_statuses() {
+		$p1 = self::factory()->post->create( array( 'post_status' => 'publish' ) );
+		$p2 = self::factory()->post->create( array( 'post_status' => 'draft' ) );
+
+		$c1 = self::factory()->comment->create_post_comments( $p1, 1 );
+		$c2 = self::factory()->comment->create_post_comments( $p2, 1 );
+
+		$q = new WP_Comment_Query();
+		$found = $q->query( array(
+			'fields' => 'ids',
+			'post_status' => array( 'any', 'draft' ),
+		) );
+		$this->assertEqualSets( array_merge( $c1, $c2 ), $found );
+	}
+
+	/**
+	 * @ticket 35512
+	 */
+	public function test_post_status_any_as_part_of_an_array_of_post_statuses() {
+		$p1 = self::factory()->post->create( array( 'post_status' => 'publish' ) );
+		$p2 = self::factory()->post->create( array( 'post_status' => 'draft' ) );
+
+		$c1 = self::factory()->comment->create_post_comments( $p1, 1 );
+		$c2 = self::factory()->comment->create_post_comments( $p2, 1 );
+
+		$q = new WP_Comment_Query();
+		$found = $q->query( array(
+			'fields' => 'ids',
+			'post_status' => array( 'any' ),
+		) );
+		$this->assertEqualSets( array_merge( $c1, $c2 ), $found );
+	}
+
+	/**
 	 * @ticket 24826
 	 */
 	public function test_comment_query_object() {
@@ -1796,6 +1872,44 @@ class Tests_Comment_Query extends WP_UnitTestCase {
 		) );
 
 		$this->assertSame( $num_queries, $wpdb->num_queries );
+	}
+
+	/**
+	 * @ticket 35677
+	 */
+	public function test_cache_should_be_sensitive_to_parent__in() {
+		global $wpdb;
+
+		$q1 = new WP_Comment_Query( array(
+			'parent__in' => array( 1, 2, 3 ),
+		) );
+
+		$num_queries = $wpdb->num_queries;
+
+		$q2 = new WP_Comment_Query( array(
+			'parent__in' => array( 4, 5, 6 ),
+		) );
+
+		$this->assertNotEquals( $num_queries, $wpdb->num_queries );
+	}
+
+	/**
+	 * @ticket 35677
+	 */
+	public function test_cache_should_be_sensitive_to_parent__not_in() {
+		global $wpdb;
+
+		$q1 = new WP_Comment_Query( array(
+			'parent__not_in' => array( 1, 2, 3 ),
+		) );
+
+		$num_queries = $wpdb->num_queries;
+
+		$q2 = new WP_Comment_Query( array(
+			'parent__not_in' => array( 4, 5, 6 ),
+		) );
+
+		$this->assertNotEquals( $num_queries, $wpdb->num_queries );
 	}
 
 	/**

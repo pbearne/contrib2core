@@ -145,11 +145,13 @@ class Tests_Query_Search extends WP_UnitTestCase {
 		$p1 = $this->factory->post->create( array(
 			'post_status' => 'publish',
 			'post_title' => '1',
+			'post_content' => '',
 		) );
 
 		$p2 = $this->factory->post->create( array(
 			'post_status' => 'publish',
 			'post_title' => '0',
+			'post_content' => '',
 		) );
 
 		$q = new WP_Query( array(
@@ -158,5 +160,25 @@ class Tests_Query_Search extends WP_UnitTestCase {
 		) );
 
 		$this->assertEqualSets( array( $p2 ), $q->posts );
+	}
+
+	/**
+	 * @ticket 35594
+	 */
+	public function test_search_should_respect_suppress_filters() {
+		add_filter( 'posts_search', array( $this, 'filter_posts_search' ) );
+		add_filter( 'posts_search_orderby', array( $this, 'filter_posts_search' ) );
+		$q = new WP_Query( array(
+			's' => 'foo',
+			'suppress_filters' => true,
+		) );
+		remove_filter( 'posts_search', array( $this, 'filter_posts_search' ) );
+		remove_filter( 'posts_search_orderby', array( $this, 'filter_posts_search' ) );
+
+		$this->assertNotContains( 'posts_search', $q->request );
+	}
+
+	public function filter_posts_search( $sql ) {
+		return $sql . ' /* posts_search */';
 	}
 }

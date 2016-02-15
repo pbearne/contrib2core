@@ -408,6 +408,8 @@ function map_meta_cap( $cap, $user_id ) {
  * While checking against particular roles in place of a capability is supported
  * in part, this practice is discouraged as it may produce unreliable results.
  *
+ * Note: Will always return true if the current user is a super admin, unless specifically denied.
+ *
  * @since 2.0.0
  *
  * @see WP_User::has_cap()
@@ -435,11 +437,11 @@ function current_user_can( $capability ) {
 }
 
 /**
- * Whether current user has a capability or role for a given blog.
+ * Whether current user has a capability or role for a given site.
  *
  * @since 3.0.0
  *
- * @param int $blog_id Blog ID
+ * @param int    $blog_id    Site ID.
  * @param string $capability Capability or role name.
  * @return bool
  */

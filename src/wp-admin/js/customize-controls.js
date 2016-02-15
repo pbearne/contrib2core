@@ -74,7 +74,7 @@
 	 * @since 4.1.0
 	 *
 	 * @param {Object}   [params]
-	 * @param {Callback} [params.completeCallback]
+	 * @param {Function} [params.completeCallback]
 	 */
 	focus = function ( params ) {
 		var construct, completeCallback, focus;
@@ -3345,6 +3345,8 @@
 							value._dirty = false;
 						} );
 
+						api.previewer.send( 'saved', response );
+
 						api.trigger( 'saved', response );
 					} );
 				};
@@ -3373,6 +3375,7 @@
 		api.bind( 'nonce-refresh', function( nonce ) {
 			$.extend( api.settings.nonce, nonce );
 			$.extend( api.previewer.nonce, nonce );
+			api.previewer.send( 'nonce-refresh', nonce );
 		});
 
 		// Create Settings
@@ -3604,8 +3607,12 @@
 
 		// Bind site title display to the corresponding field.
 		if ( title.length ) {
-			$( '#customize-control-blogname input' ).on( 'input', function() {
-				title.text( this.value );
+			api( 'blogname', function( setting ) {
+				var updateTitle = function() {
+					title.text( $.trim( setting() ) || api.l10n.untitledBlogName );
+				};
+				setting.bind( updateTitle );
+				updateTitle();
 			} );
 		}
 
