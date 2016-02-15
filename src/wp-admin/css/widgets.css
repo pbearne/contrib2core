@@ -114,7 +114,12 @@
 	padding: 0 0 15px;
 	margin: 0;
 	font-style: normal;
-	color: #777;
+	color: #72777c;
+}
+
+.widget-holder .description,
+.inactive-sidebar .description {
+	color: #555d66;
 }
 
 #widgets-right .widgets-holder-wrap .description {
@@ -225,14 +230,6 @@ div#widgets-left .inactive-sidebar .widgets-sortables {
 
 /* Widgets Right */
 
-div#widgets-right:after {
-	content: ".";
-	display: block;
-	height: 0;
-	clear: both;
-	visibility: hidden;
-}
-
 div#widgets-right .sidebars-column-1,
 div#widgets-right .sidebars-column-2 {
 	max-width: 450px;
@@ -282,7 +279,7 @@ div#widgets-right .closed .widgets-sortables {
 
 /* Dragging a widget over a closed sidebar */
 #widgets-right .widgets-holder-wrap.widget-hover {
-	border-color: #777;
+	border-color: #72777c;
 	-webkit-box-shadow: 0 1px 2px rgba(0,0,0,0.3);
 	box-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }

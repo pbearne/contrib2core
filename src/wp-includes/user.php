@@ -7,7 +7,7 @@
  */
 
 /**
- * Authenticate and log in a user with remember capability.
+ * Authenticates and logs a user in with 'remember' capability.
  *
  * The credentials is an array that has 'user_login', 'user_password', and
  * 'remember' indices. If the credentials is not given, then the log in form
@@ -1682,6 +1682,7 @@ function wp_update_user($userdata) {
 	}
 
 	wp_cache_delete( $user['user_email'], 'useremail' );
+	wp_cache_delete( $user['user_nicename'], 'userslugs' );
 
 	// Merge old and new fields with new fields overwriting old ones.
 	$userdata = array_merge( $user, $userdata );

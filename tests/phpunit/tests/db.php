@@ -60,12 +60,7 @@ class Tests_DB extends WP_UnitTestCase {
 		$var = $wpdb->get_var( "SELECT ID FROM $wpdb->users LIMIT 1" );
 		$this->assertGreaterThan( 0, $var );
 
-		if ( $wpdb->use_mysqli ) {
-			mysqli_close( $wpdb->dbh );
-		} else {
-			mysql_close( $wpdb->dbh );
-		}
-		unset( $wpdb->dbh );
+		$wpdb->close();
 
 		$var = $wpdb->get_var( "SELECT ID FROM $wpdb->users LIMIT 1" );
 		$this->assertGreaterThan( 0, $var );
@@ -940,5 +935,21 @@ class Tests_DB extends WP_UnitTestCase {
 		$row = $wpdb->get_row( "SELECT * FROM $wpdb->postmeta WHERE meta_key='$key'" );
 
 		$this->assertNull( $row );
+	}
+
+	/**
+	 * @ticket 34903
+	 */
+	function test_close() {
+		global $wpdb;
+
+		$this->assertTrue( $wpdb->close() );
+		$this->assertFalse( $wpdb->close() );
+
+		$wpdb->check_connection();
+
+		$this->assertTrue( $wpdb->close() );
+
+		$wpdb->check_connection();
 	}
 }

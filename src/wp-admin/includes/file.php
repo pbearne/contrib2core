@@ -224,6 +224,7 @@ function validate_file_to_edit( $file, $allowed_files = '' ) {
  * Handle PHP uploads in WordPress, sanitizing file names, checking extensions for mime type,
  * and moving the file to the appropriate directory within the uploads directory.
  *
+ * @access private
  * @since 4.0.0
  *
  * @see wp_handle_upload_error
@@ -409,7 +410,8 @@ function _wp_handle_upload( &$file, $overrides, $time, $action ) {
 		'file' => $new_file,
 		'url'  => $url,
 		'type' => $type
-	), 'wp_handle_sideload' === $action ? 'sideload' : 'upload' ); }
+	), 'wp_handle_sideload' === $action ? 'sideload' : 'upload' );
+}
 
 /**
  * Wrapper for _wp_handle_upload(), passes 'wp_handle_upload' action.

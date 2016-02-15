@@ -1304,24 +1304,6 @@ class WP_Query {
 	 public $thumbnails_cached = false;
 
 	/**
-	 * Whether the term meta cache for matched posts has been primed.
-	 *
-	 * @since 4.4.0
-	 * @access protected
-	 * @var bool
-	 */
-	public $updated_term_meta_cache = false;
-
-	/**
-	 * Whether the comment meta cache for matched posts has been primed.
-	 *
-	 * @since 4.4.0
-	 * @access protected
-	 * @var bool
-	 */
-	public $updated_comment_meta_cache = false;
-
-	/**
 	 * Cached list of search stopwords.
 	 *
 	 * @since 3.7.0
@@ -1484,6 +1466,7 @@ class WP_Query {
 	 * @since 4.4.0 Introduced `$post_name__in` and `$title` parameters. `$s` was updated to support excluded
 	 *              search terms, by prepending a hyphen.
 	 * @since 4.5.0 Removed the `$comments_popup` parameter.
+	 *              Introduced the `$comment_status` and `$ping_status` parameters.
 	 * @access public
 	 *
 	 * @param string|array $query {
@@ -1500,6 +1483,7 @@ class WP_Query {
 	 *     @type array        $category__in            An array of category IDs (OR in, no children).
 	 *     @type array        $category__not_in        An array of category IDs (NOT in).
 	 *     @type string       $category_name           Use category slug (not name, this or any children).
+	 *     @type string       $comment_status          Comment status.
 	 *     @type int          $comments_per_page       The number of comments to return per page.
 	 *                                                 Default 'comments_per_page' option.
 	 *     @type array        $date_query              An associative array of WP_Date_Query arguments.
@@ -1545,6 +1529,7 @@ class WP_Query {
 	 *     @type int          $page_id                 Page ID.
 	 *     @type string       $pagename                Page slug.
 	 *     @type string       $perm                    Show posts if user has the appropriate capability.
+	 *     @type string       $ping_status             Ping status.
 	 *     @type array        $post__in                An array of post IDs to retrieve, sticky posts will be included
 	 *     @type string       $post_mime_type          The mime type of the post. Used for 'attachment' post_type.
 	 *     @type array        $post__not_in            An array of post IDs not to retrieve. Note: a string of comma-
@@ -2787,15 +2772,17 @@ class WP_Query {
 			$search = $this->parse_search( $q );
 		}
 
-		/**
-		 * Filter the search SQL that is used in the WHERE clause of WP_Query.
-		 *
-		 * @since 3.0.0
-		 *
-		 * @param string   $search Search SQL for WHERE clause.
-		 * @param WP_Query $this   The current WP_Query object.
-		 */
-		$search = apply_filters_ref_array( 'posts_search', array( $search, &$this ) );
+		if ( ! $q['suppress_filters'] ) {
+			/**
+			 * Filter the search SQL that is used in the WHERE clause of WP_Query.
+			 *
+			 * @since 3.0.0
+			 *
+			 * @param string   $search Search SQL for WHERE clause.
+			 * @param WP_Query $this   The current WP_Query object.
+			 */
+			$search = apply_filters_ref_array( 'posts_search', array( $search, &$this ) );
+		}
 
 		// Taxonomies
 		if ( !$this->is_singular ) {
@@ -2852,6 +2839,9 @@ class WP_Query {
 						} else {
 							$q['term_id'] = $queried_items['terms'][0];
 						}
+
+						// Take the first one we find.
+						break;
 					}
 				}
 			}
@@ -3004,15 +2994,18 @@ class WP_Query {
 			if ( ! empty( $q['search_orderby_title'] ) && ( empty( $q['orderby'] ) && ! $this->is_feed ) || ( isset( $q['orderby'] ) && 'relevance' === $q['orderby'] ) )
 				$search_orderby = $this->parse_search_order( $q );
 
-			/**
-			 * Filter the ORDER BY used when ordering search results.
-			 *
-			 * @since 3.7.0
-			 *
-			 * @param string   $search_orderby The ORDER BY clause.
-			 * @param WP_Query $this           The current WP_Query instance.
-			 */
-			$search_orderby = apply_filters( 'posts_search_orderby', $search_orderby, $this );
+			if ( ! $q['suppress_filters'] ) {
+				/**
+				 * Filter the ORDER BY used when ordering search results.
+				 *
+				 * @since 3.7.0
+				 *
+				 * @param string   $search_orderby The ORDER BY clause.
+				 * @param WP_Query $this           The current WP_Query instance.
+				 */
+				$search_orderby = apply_filters( 'posts_search_orderby', $search_orderby, $this );
+			}
+
 			if ( $search_orderby )
 				$orderby = $orderby ? $search_orderby . ', ' . $orderby : $search_orderby;
 		}
@@ -3034,6 +3027,14 @@ class WP_Query {
 			}
 		} elseif ( isset( $q['has_password'] ) ) {
 			$where .= sprintf( " AND $wpdb->posts.post_password %s ''", $q['has_password'] ? '!=' : '=' );
+		}
+
+		if ( ! empty( $q['comment_status'] ) ) {
+			$where .= $wpdb->prepare( " AND $wpdb->posts.comment_status = %s ", $q['comment_status'] );
+		}
+
+		if ( ! empty( $q['ping_status'] ) )  {
+			$where .= $wpdb->prepare( " AND $wpdb->posts.ping_status = %s ", $q['ping_status'] );
 		}
 
 		if ( 'any' == $post_type ) {
@@ -4855,14 +4856,6 @@ class WP_Query {
 	 *               another value if filtered by a plugin.
 	 */
 	public function lazyload_term_meta( $check, $term_id ) {
-		/*
-		 * We only do this once per `WP_Query` instance.
-		 * Can't use `remove_filter()` because of non-unique object hashes.
-		 */
-		if ( $this->updated_term_meta_cache ) {
-			return $check;
-		}
-
 		// We can only lazyload if the entire post object is present.
 		$posts = array();
 		foreach ( $this->posts as $post ) {
@@ -4896,13 +4889,13 @@ class WP_Query {
 			 */
 			if ( isset( $term_ids[ $term_id ] ) ) {
 				update_termmeta_cache( array_keys( $term_ids ) );
-				$this->updated_term_meta_cache = true;
+				remove_filter( 'get_term_metadata', array( $this, 'lazyload_term_meta' ), 10, 2 );
 			}
 		}
 
 		// If no terms were found, there's no need to run this again.
 		if ( empty( $term_ids ) ) {
-			$this->updated_term_meta_cache = true;
+			remove_filter( 'get_term_metadata', array( $this, 'lazyload_term_meta' ), 10, 2 );
 		}
 
 		return $check;
@@ -4921,14 +4914,6 @@ class WP_Query {
 	 * @return mixed The original value of `$check`, to not affect 'get_comment_metadata'.
 	 */
 	public function lazyload_comment_meta( $check, $comment_id ) {
-		/*
-		 * We only do this once per `WP_Query` instance.
-		 * Can't use `remove_filter()` because of non-unique object hashes.
-		 */
-		if ( $this->updated_comment_meta_cache ) {
-			return $check;
-		}
-
 		// Don't use `wp_list_pluck()` to avoid by-reference manipulation.
 		$comment_ids = array();
 		if ( is_array( $this->comments ) ) {
@@ -4944,9 +4929,9 @@ class WP_Query {
 		 */
 		if ( in_array( $comment_id, $comment_ids ) ) {
 			update_meta_cache( 'comment', $comment_ids );
-			$this->updated_comment_meta_cache = true;
+			remove_filter( 'get_comment_metadata', array( $this, 'lazyload_comment_meta' ), 10, 2 );
 		} elseif ( empty( $comment_ids ) ) {
-			$this->updated_comment_meta_cache = true;
+			remove_filter( 'get_comment_metadata', array( $this, 'lazyload_comment_meta' ), 10, 2 );
 		}
 
 		return $check;

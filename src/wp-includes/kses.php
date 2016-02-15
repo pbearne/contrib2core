@@ -1582,6 +1582,21 @@ function wp_kses_post( $data ) {
 }
 
 /**
+ * Navigates through an array, object, or scalar, and sanitizes content for
+ * allowed HTML tags for post content.
+ *
+ * @since 4.4.2
+ *
+ * @see map_deep()
+ *
+ * @param mixed $data The array, object, or scalar value to inspect.
+ * @return mixed The filtered content.
+ */
+function wp_kses_post_deep( $data ) {
+	return map_deep( $data, 'wp_kses_post' );
+}
+
+/**
  * Strips all of the HTML in the content.
  *
  * @since 2.1.0
