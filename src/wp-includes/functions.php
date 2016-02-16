@@ -183,7 +183,6 @@ function wp_maybe_decline_date( $date ) {
 	if ( 'on' === _x( 'off', 'decline months names: on or off' ) ) {
 		// Match a format like 'j F Y' or 'j. F'
 		if ( @preg_match( '#^\d{1,2}\.? \w+#u', $date ) ) {
-
 			$months = $wp_locale->month;
 
 			foreach ( $months as $key => $month ) {
@@ -220,9 +219,9 @@ function number_format_i18n( $number, $decimals = 0 ) {
 	global $wp_locale;
 
 	if ( isset( $wp_locale ) ) {
-		$formatted = number_format( $number, absint( $decimals ), $wp_locale->number_format['decimal_point'], $wp_locale->number_format['thousands_sep'] );
+		$formatted = number_format( (int) $number, absint( $decimals ), $wp_locale->number_format['decimal_point'], $wp_locale->number_format['thousands_sep'] );
 	} else {
-		$formatted = number_format( $number, absint( $decimals ) );
+		$formatted = number_format( (int) $number, absint( $decimals ) );
 	}
 
 	/**

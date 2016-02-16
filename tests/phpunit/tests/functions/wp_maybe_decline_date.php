@@ -46,20 +46,47 @@ class Tests_Functions_wp_maybe_decline_date extends WP_UnitTestCase {
 	}
 
 
+	/**
+	 *
+	 *
+	 * @param $expanded
+	 * @param $compact
+	 */
 	function wp_maybe_decline_date_pass_date_to_ca_locle( $expanded, $compact ) {
 		add_filter( 'locale', array( __CLASS__, 'set_locale_to_ca' ) );
 		$this->assertEquals( "2016 d'agost 12", wp_maybe_decline_date( '2016 de agost 12' ) );
 	}
 
+	/**
+	 *
+	 *
+	 * @static
+	 *
+	 * @param $locale
+	 *
+	 * @return string
+	 */
 	public static function set_locale_to_ca( $locale ) {
 		return 'ca';
 	}
 
+	/**
+	 *
+	 *
+	 * @static
+	 *
+	 * @param $locale
+	 *
+	 * @return string
+	 */
 	public static function set_locale_to_pl( $locale ) {
 		return 'pl';
 	}
 
 
+	/**
+	 *
+	 */
 	function test_wp_maybe_decline_date_pass_date() {
 		global $wp_locale;
 		add_filter( 'locale', array( __CLASS__, 'set_locale_to_pl' ) );
