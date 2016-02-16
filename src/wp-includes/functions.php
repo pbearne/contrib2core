@@ -181,11 +181,6 @@ function wp_maybe_decline_date( $date ) {
 	 * translate this to 'on'. Do not translate into your own language.
 	 */
 	if ( 'on' === _x( 'off', 'decline months names: on or off' ) ) {
-		var_dump('running');
-//		var_dump($wp_locale->month_genitive);
-//		var_dump($wp_locale->month);
-		var_dump( preg_match( '#^\d{1,2}\.? \w+#u', $date ) );
-		var_dump( $date );
 		// Match a format like 'j F Y' or 'j. F'
 		if ( @preg_match( '#^\d{1,2}\.? \w+#u', $date ) ) {
 
