@@ -70,7 +70,10 @@ class Tests_Functions_number_format_i18n extends WP_UnitTestCase {
 		$wp_locale->number_format['thousands_sep'] = '^';
 
 		$this->assertEquals( '1^000@00', number_format_i18n( 1000.00, 2 ) );
+		$this->assertEquals( '1.000,00', number_format_i18n( (int)1000, 2 ) );
 		$this->assertEquals( '1^234^567^890@00000', number_format_i18n( 1234567890.00, 5 ) );
+		$this->assertEquals( '1^234^567^890@00000', number_format_i18n( 1234567890.99999, 5 ) );
+		$this->assertEquals( '1^234^567^890@00000', number_format_i18n( 1234567890.55555, 5 ) );
 		// clear $wp_locale
 		$wp_locale = null;
 	}
@@ -80,7 +83,10 @@ class Tests_Functions_number_format_i18n extends WP_UnitTestCase {
 	function test_number_format_i18n_no_global_and_us() {
 
 		$this->assertEquals( '1,000.00', number_format_i18n( 1000.00, 2 ) );
+		$this->assertEquals( '1.000,00', number_format_i18n( (int)1000, 2 ) );
 		$this->assertEquals( '1,234,567,890.00000', number_format_i18n( 1234567890.00, 5 ) );
+		$this->assertEquals( '1^234^567^890@00000', number_format_i18n( 1234567890.99999, 5 ) );
+		$this->assertEquals( '1^234^567^890@00000', number_format_i18n( 1234567890.55555, 5 ) );
 	}
 
 	/**
@@ -92,7 +98,10 @@ class Tests_Functions_number_format_i18n extends WP_UnitTestCase {
 		$wp_locale->number_format['thousands_sep'] = '.';
 
 		$this->assertEquals( '1.000,00', number_format_i18n( 1000.00, 2 ) );
+		$this->assertEquals( '1.000,00', number_format_i18n( (int)1000, 2 ) );
 		$this->assertEquals( '1.234.567.890,00000', number_format_i18n( 1234567890.00, 5 ) );
+		$this->assertEquals( '1^234^567^890@00000', number_format_i18n( 1234567890.99999, 5 ) );
+		$this->assertEquals( '1^234^567^890@00000', number_format_i18n( 1234567890.55555, 5 ) );
 		// clear $wp_locale
 		$wp_locale = null;
 	}
