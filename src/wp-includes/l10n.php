@@ -318,7 +318,7 @@ function esc_html_x( $text, $context, $domain = 'default' ) {
  *
  * Example:
  *
- *     $people = sprintf( _n( '%s person', '%s people', $count, 'text-domain' ), number_format_i18n( $count ) );
+ *     $people = sprintf( _n( '%s person', '%s people', $count, 'text-domain' ), number_format_i18n.php( $count ) );
  *
  * @since 2.8.0
  *
@@ -357,7 +357,7 @@ function _n( $single, $plural, $number, $domain = 'default' ) {
  *
  * Example:
  *
- *     $people = sprintf( _n( '%s person', '%s people', $count, 'context', 'text-domain' ), number_format_i18n( $count ) );
+ *     $people = sprintf( _n( '%s person', '%s people', $count, 'context', 'text-domain' ), number_format_i18n.php( $count ) );
  *
  * @since 2.8.0
  *
@@ -402,7 +402,7 @@ function _nx($single, $plural, $number, $context, $domain = 'default') {
  *     );
  *     ...
  *     $message = $messages[ $type ];
- *     $usable_text = sprintf( translate_nooped_plural( $message, $count, 'text-domain' ), number_format_i18n( $count ) );
+ *     $usable_text = sprintf( translate_nooped_plural( $message, $count, 'text-domain' ), number_format_i18n.php( $count ) );
  *
  * @since 2.5.0
  *
@@ -439,7 +439,7 @@ function _n_noop( $singular, $plural, $domain = null ) {
  *     );
  *     ...
  *     $message = $messages[ $type ];
- *     $usable_text = sprintf( translate_nooped_plural( $message, $count, 'text-domain' ), number_format_i18n( $count ) );
+ *     $usable_text = sprintf( translate_nooped_plural( $message, $count, 'text-domain' ), number_format_i18n.php( $count ) );
  *
  * @since 2.8.0
  *
@@ -478,7 +478,7 @@ function _nx_noop( $singular, $plural, $context, $domain = null ) {
  *     );
  *     ...
  *     $message = $messages[ $type ];
- *     $usable_text = sprintf( translate_nooped_plural( $message, $count, 'text-domain' ), number_format_i18n( $count ) );
+ *     $usable_text = sprintf( translate_nooped_plural( $message, $count, 'text-domain' ), number_format_i18n.php( $count ) );
  *
  * @since 3.1.0
  *
