@@ -2,7 +2,7 @@
 window._wpCustomizeNavMenusSettings = {
 	'nonce': 'yo',
 	'phpIntMax': '2147483647',
-	'menuItemTransport': 'postMessage',
+	'settingTransport': 'postMessage',
 	'allMenus': [{
 		'term_id': '2',
 		'name': 'Social Menu',
@@ -102,6 +102,10 @@ window._wpCustomizeNavMenusSettings = {
 		'taxonomyTermLabel': 'Taxonomy',
 		'unnamed': '(unnamed)',
 		'untitled': '(no label)'
+	},
+	'locationSlugMappedToName': {
+		'main-footer': 'Main Footer',
+		'main-header': 'Main Header'
 	}
 };
 window._wpCustomizeSettings.panels.nav_menus = {
@@ -389,11 +393,6 @@ window._wpCustomizeSettings.controls.new_menu_name = {
 	'label': '',
 	'description': '',
 	'instanceNumber': 46
-};
-window._wpCustomizeSettings.settings.new_menu_name = {
-	'value': '',
-	'transport': 'postMessage',
-	'dirty': false
 };
 
 // From nav-menu.js

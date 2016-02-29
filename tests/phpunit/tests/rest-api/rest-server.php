@@ -13,11 +13,18 @@ class Tests_REST_Server extends WP_Test_REST_TestCase {
 	public function setUp() {
 		parent::setUp();
 
-		/** @var WP_REST_Server $wp_rest_server */
-		global $wp_rest_server;
-		$this->server = $wp_rest_server = new Spy_REST_Server();
+		// Reset REST server to ensure only our routes are registered
+		$GLOBALS['wp_rest_server'] = null;
+		add_filter( 'wp_rest_server_class', array( $this, 'filter_wp_rest_server_class' ) );
+		$this->server = rest_get_server();
+		remove_filter( 'wp_rest_server_class', array( $this, 'filter_wp_rest_server_class' ) );
+	}
 
-		do_action( 'rest_api_init', $this->server );
+	public function tearDown() {
+		// Remove our temporary spy server
+		$GLOBALS['wp_rest_server'] = null;
+
+		parent::tearDown();
 	}
 
 	public function test_envelope() {
@@ -126,6 +133,29 @@ class Tests_REST_Server extends WP_Test_REST_TestCase {
 			'methods'  => array( 'GET' ),
 			'callback' => '__return_true',
 		) );
+		$request = new WP_REST_Request( 'HEAD', '/head-request/test' );
+		$response = $this->server->dispatch( $request );
+		$this->assertEquals( 200, $response->get_status() );
+	}
+
+	/**
+	 * Plugins should be able to register explicit HEAD callbacks before the
+	 * GET callback.
+	 *
+	 * @depends test_head_request_handled_by_get
+	 */
+	public function test_explicit_head_callback() {
+		register_rest_route( 'head-request', '/test', array(
+			array(
+				'methods' => array( 'HEAD' ),
+				'callback' => '__return_true',
+			),
+			array(
+				'methods' => array( 'GET' ),
+				'callback' => '__return_false',
+				'permission_callback' => array( $this, 'permission_denied' ),
+			),
+		));
 		$request = new WP_REST_Request( 'HEAD', '/head-request/test' );
 		$response = $this->server->dispatch( $request );
 		$this->assertEquals( 200, $response->get_status() );
@@ -393,6 +423,45 @@ class Tests_REST_Server extends WP_Test_REST_TestCase {
 		$this->assertEquals( 'embed', $alternate[1]['parameters']['context'] );
 	}
 
+	public function test_link_curies() {
+		$response = new WP_REST_Response();
+		$response->add_link( 'https://api.w.org/term', 'http://example.com/' );
+
+		$data = $this->server->response_to_data( $response, false );
+		$links = $data['_links'];
+
+		$this->assertArrayHasKey( 'wp:term', $links );
+		$this->assertArrayHasKey( 'curies', $links );
+	}
+
+	public function test_custom_curie_link() {
+		$response = new WP_REST_Response();
+		$response->add_link( 'http://mysite.com/contact.html', 'http://example.com/' );
+
+		add_filter( 'rest_response_link_curies', array( $this, 'add_custom_curie' ) );
+
+		$data = $this->server->response_to_data( $response, false );
+		$links = $data['_links'];
+
+		$this->assertArrayHasKey( 'my_site:contact', $links );
+		$this->assertArrayHasKey( 'curies', $links );
+	}
+
+	/**
+	 * Helper callback to add a new custom curie via a filter.
+	 *
+	 * @param array $curies
+	 * @return array
+	 */
+	public function add_custom_curie( $curies ) {
+		$curies[] = array(
+			'name'      => 'my_site',
+			'href'      => 'http://mysite.com/{rel}.html',
+			'templated' => true,
+		);
+		return $curies;
+	}
+
 	/**
 	 * @depends test_link_embedding
 	 */
@@ -423,7 +492,9 @@ class Tests_REST_Server extends WP_Test_REST_TestCase {
 		) );
 
 		$response = new WP_REST_Response();
-		$response->add_link( 'alternate', rest_url( '/test/embeddable?parsed_params=yes' ), array( 'embeddable' => true ) );
+		$url = rest_url( '/test/embeddable' );
+		$url = add_query_arg( 'parsed_params', 'yes', $url );
+		$response->add_link( 'alternate', $url, array( 'embeddable' => true ) );
 
 		$data = $this->server->response_to_data( $response, true );
 
@@ -445,7 +516,9 @@ class Tests_REST_Server extends WP_Test_REST_TestCase {
 		) );
 
 		$response = new WP_REST_Response();
-		$response->add_link( 'up', rest_url( '/test/embeddable?error=1' ), array( 'embeddable' => true ) );
+		$url = rest_url( '/test/embeddable' );
+		$url = add_query_arg( 'error', '1', $url );
+		$response->add_link( 'up', $url, array( 'embeddable' => true ) );
 
 		$data = $this->server->response_to_data( $response, true );
 
@@ -644,5 +717,9 @@ class Tests_REST_Server extends WP_Test_REST_TestCase {
 		foreach ( wp_get_nocache_headers() as $header => $value ) {
 			$this->assertFalse( isset( $headers[ $header ] ) && $headers[ $header ] === $value, sprintf( 'Header %s is set to nocache.', $header ) );
 		}
+	}
+
+	public function filter_wp_rest_server_class() {
+		return 'Spy_REST_Server';
 	}
 }

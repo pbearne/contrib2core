@@ -1521,18 +1521,25 @@
 			settings = $.map( control.params.settings, function( value ) {
 				return value;
 			});
-			api.apply( api, settings.concat( function () {
-				var key;
 
+			if ( 0 === settings.length ) {
+				control.setting = null;
 				control.settings = {};
-				for ( key in control.params.settings ) {
-					control.settings[ key ] = api( control.params.settings[ key ] );
-				}
-
-				control.setting = control.settings['default'] || null;
-
 				control.embed();
-			}) );
+			} else {
+				api.apply( api, settings.concat( function() {
+					var key;
+
+					control.settings = {};
+					for ( key in control.params.settings ) {
+						control.settings[ key ] = api( control.params.settings[ key ] );
+					}
+
+					control.setting = control.settings['default'] || null;
+
+					control.embed();
+				}) );
+			}
 
 			// After the control is embedded on the page, invoke the "ready" method.
 			control.deferred.embedded.done( function () {
@@ -1550,7 +1557,7 @@
 			// Watch for changes to the section state
 			inject = function ( sectionId ) {
 				var parentContainer;
-				if ( ! sectionId ) { // @todo allow a control to be embedded without a section, for instance a control embedded in the frontend
+				if ( ! sectionId ) { // @todo allow a control to be embedded without a section, for instance a control embedded in the front end.
 					return;
 				}
 				// Wait for the section to be registered
@@ -2296,6 +2303,43 @@
 	});
 
 	/**
+	 * A control for selecting Site Logos.
+	 *
+	 * @class
+	 * @augments wp.customize.MediaControl
+	 * @augments wp.customize.Control
+	 * @augments wp.customize.Class
+	 */
+	api.SiteLogoControl = api.MediaControl.extend({
+
+		/**
+		 * When the control's DOM structure is ready,
+		 * set up internal event bindings.
+		 */
+		ready: function() {
+			var control = this;
+
+			// Shortcut so that we don't have to use _.bind every time we add a callback.
+			_.bindAll( control, 'restoreDefault', 'removeFile', 'openFrame', 'select' );
+
+			// Bind events, with delegation to facilitate re-rendering.
+			control.container.on( 'click keydown', '.upload-button', control.openFrame );
+			control.container.on( 'click keydown', '.thumbnail-image img', control.openFrame );
+			control.container.on( 'click keydown', '.default-button', control.restoreDefault );
+			control.container.on( 'click keydown', '.remove-button', control.removeFile );
+
+			control.setting.bind( function( attachmentId ) {
+				wp.media.attachment( attachmentId ).fetch().done( function() {
+					wp.customize.previewer.send( 'site-logo-attachment-data', this.attributes );
+				} );
+
+				// Re-render whenever the control's setting changes.
+				control.renderContent();
+			} );
+		}
+	});
+
+	/**
 	 * @class
 	 * @augments wp.customize.Control
 	 * @augments wp.customize.Class
@@ -2995,10 +3039,10 @@
 
 			// Limit the URL to internal, front-end links.
 			//
-			// If the frontend and the admin are served from the same domain, load the
+			// If the front end and the admin are served from the same domain, load the
 			// preview over ssl if the Customizer is being loaded over ssl. This avoids
-			// insecure content warnings. This is not attempted if the admin and frontend
-			// are on different domains to avoid the case where the frontend doesn't have
+			// insecure content warnings. This is not attempted if the admin and front end
+			// are on different domains to avoid the case where the front end doesn't have
 			// ssl certs.
 
 			this.add( 'previewUrl', params.previewUrl ).setter( function( to ) {
@@ -3201,6 +3245,7 @@
 		image:         api.ImageControl,
 		cropped_image: api.CroppedImageControl,
 		site_icon:     api.SiteIconControl,
+		site_logo:     api.SiteLogoControl,
 		header:        api.HeaderControl,
 		background:    api.BackgroundControl,
 		theme:         api.ThemeControl
@@ -3229,7 +3274,8 @@
 			overlay = body.children( '.wp-full-overlay' ),
 			title = $( '#customize-info .panel-title.site-title' ),
 			closeBtn = $( '.customize-controls-close' ),
-			saveBtn = $( '#save' );
+			saveBtn = $( '#save' ),
+			footerActions = $( '#customize-footer-actions' );
 
 		// Prevent the form from saving when enter is pressed on an input or select element.
 		$('#customize-controls').on( 'keydown', function( e ) {
@@ -3605,6 +3651,46 @@
 			event.preventDefault();
 		});
 
+		// Previewed device bindings.
+		api.previewedDevice = new api.Value();
+
+		// Set the default device.
+		api.bind( 'ready', function() {
+			_.find( api.settings.previewableDevices, function( value, key ) {
+				if ( true === value['default'] ) {
+					api.previewedDevice.set( key );
+					return true;
+				}
+			} );
+		} );
+
+		// Set the toggled device.
+		footerActions.find( '.devices button' ).on( 'click', function( event ) {
+			api.previewedDevice.set( $( event.currentTarget ).data( 'device' ) );
+		});
+
+		// Bind device changes.
+		api.previewedDevice.bind( function( newDevice ) {
+			var overlay = $( '.wp-full-overlay' ),
+				devices = '';
+
+			footerActions.find( '.devices button' )
+				.removeClass( 'active' )
+				.attr( 'aria-pressed', false );
+
+			footerActions.find( '.devices .preview-' + newDevice )
+				.addClass( 'active' )
+				.attr( 'aria-pressed', true );
+
+			$.each( api.settings.previewableDevices, function( device ) {
+				devices += ' preview-' + device;
+			} );
+
+			overlay
+				.removeClass( devices )
+				.addClass( 'preview-' + newDevice );
+		} );
+
 		// Bind site title display to the corresponding field.
 		if ( title.length ) {
 			api( 'blogname', function( setting ) {
@@ -3743,6 +3829,26 @@
 					api.previewer.previewUrl.set( api.settings.url.home + '?page_id=' + pageId );
 				}
 			});
+		});
+
+		// Focus on the control that is associated with the given setting.
+		api.previewer.bind( 'focus-control-for-setting', function( settingId ) {
+			var matchedControl;
+			api.control.each( function( control ) {
+				var settingIds = _.pluck( control.settings, 'id' );
+				if ( -1 !== _.indexOf( settingIds, settingId ) ) {
+					matchedControl = control;
+				}
+			} );
+
+			if ( matchedControl ) {
+				matchedControl.focus();
+			}
+		} );
+
+		// Refresh the preview when it requests.
+		api.previewer.bind( 'refresh', function() {
+			api.previewer.refresh();
 		});
 
 		api.trigger( 'ready' );

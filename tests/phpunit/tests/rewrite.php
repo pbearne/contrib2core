@@ -103,23 +103,72 @@ class Tests_Rewrite extends WP_UnitTestCase {
 	}
 
 	function test_url_to_postid_set_url_scheme_http_to_https() {
-		// Save server data for cleanup
-		$is_ssl = is_ssl();
-		$http_host = $_SERVER['HTTP_HOST'];
+		$_SERVER['HTTPS'] = 'on';
+
+		$post_id        = self::factory()->post->create();
+		$post_permalink = get_permalink( $post_id );
+		$post_url_to_id = url_to_postid( set_url_scheme( $post_permalink, 'http' ) );
+
+		$page_id        = self::factory()->post->create( array( 'post_type' => 'page' ) );
+		$page_permalink = get_permalink( $page_id );
+		$page_url_to_id = url_to_postid( set_url_scheme( $page_permalink, 'http' ) );
+
+		$this->assertEquals( $post_id, $post_url_to_id );
+		$this->assertEquals( $page_id, $page_url_to_id );
+	}
+
+	/**
+	 * @ticket 35531
+	 * @group multisite
+	 */
+	function test_url_to_postid_of_http_site_when_current_site_uses_https() {
+		if ( ! is_multisite() ) {
+			$this->markTestSkipped( 'This test requires multisite' );
+		}
 
 		$_SERVER['HTTPS'] = 'on';
 
-		$post_id = self::factory()->post->create();
-		$permalink = get_permalink( $post_id );
-		$this->assertEquals( $post_id, url_to_postid( set_url_scheme( $permalink, 'http' ) ) );
+		$network_home = home_url();
+		$this->blog_id_35531 = self::factory()->blog->create();
 
-		$post_id = self::factory()->post->create( array( 'post_type' => 'page' ) );
-		$permalink = get_permalink( $post_id );
-		$this->assertEquals( $post_id, url_to_postid( set_url_scheme( $permalink, 'http' ) ) );
+		add_filter( 'home_url', array( $this, '_filter_http_home_url' ), 10, 4 );
+
+		switch_to_blog( $this->blog_id_35531 );
+
+		$post_id       = self::factory()->post->create();
+		$permalink     = get_permalink( $post_id );
+		$url_to_postid = url_to_postid( $permalink );
+
+		restore_current_blog();
 
 		// Cleanup.
-		$_SERVER['HTTPS'] = $is_ssl ? 'on' : 'off';
-		$_SERVER['HTTP_HOST'] = $http_host;
+		remove_filter( 'home_url', array( $this, '_filter_http_home_url' ), 10 );
+
+		// Test the tests:
+		$this->assertSame( 'http', parse_url( $permalink, PHP_URL_SCHEME ) );
+		$this->assertSame( 'https', parse_url( $network_home, PHP_URL_SCHEME ) );
+
+		// Test that the url_to_postid() call matched:
+		$this->assertEquals( $post_id, $url_to_postid );
+	}
+
+	/**
+	 * Enforce an `http` scheme for our target site.
+	 *
+	 * @param string      $url         The complete home URL including scheme and path.
+	 * @param string      $path        Path relative to the home URL. Blank string if no path is specified.
+	 * @param string|null $orig_scheme Scheme to give the home URL context.
+	 * @param int|null    $blog_id     Site ID, or null for the current site.
+	 * @return string                  The complete home URL including scheme and path.
+	 */
+	function _filter_http_home_url( $url, $path, $orig_scheme, $_blog_id ) {
+		global $blog_id;
+
+		if ( $this->blog_id_35531 === $blog_id ) {
+			return set_url_scheme( $url, 'http' );
+		}
+
+		return $url;
 	}
 
 	function test_url_to_postid_custom_post_type() {

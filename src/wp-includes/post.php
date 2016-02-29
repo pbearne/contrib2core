@@ -186,11 +186,15 @@ function create_initial_post_types() {
  */
 function get_attached_file( $attachment_id, $unfiltered = false ) {
 	$file = get_post_meta( $attachment_id, '_wp_attached_file', true );
+
 	// If the file is relative, prepend upload dir.
-	if ( $file && 0 !== strpos($file, '/') && !preg_match('|^.:\\\|', $file) && ( ($uploads = wp_upload_dir()) && false === $uploads['error'] ) )
+	if ( $file && 0 !== strpos( $file, '/' ) && ! preg_match( '|^.:\\\|', $file ) && ( ( $uploads = wp_get_upload_dir() ) && false === $uploads['error'] ) ) {
 		$file = $uploads['basedir'] . "/$file";
-	if ( $unfiltered )
+	}
+
+	if ( $unfiltered ) {
 		return $file;
+	}
 
 	/**
 	 * Filter the attached file based on the given ID.
@@ -248,7 +252,7 @@ function update_attached_file( $attachment_id, $file ) {
 function _wp_relative_upload_path( $path ) {
 	$new_path = $path;
 
-	$uploads = wp_upload_dir();
+	$uploads = wp_get_upload_dir();
 	if ( 0 === strpos( $new_path, $uploads['basedir'] ) ) {
 			$new_path = str_replace( $uploads['basedir'], '', $new_path );
 			$new_path = ltrim( $new_path, '/' );
@@ -1632,6 +1636,28 @@ function post_type_supports( $post_type, $feature ) {
 	global $_wp_post_type_features;
 
 	return ( isset( $_wp_post_type_features[$post_type][$feature] ) );
+}
+
+/**
+ * Retrieves a list of post type names that support a specific feature.
+ *
+ * @since 4.5.0
+ *
+ * @global array $_wp_post_type_features Post type features
+ *
+ * @param array|string $feature  Single feature or an array of features the post types should support.
+ * @param string       $operator Optional. The logical operation to perform. 'or' means
+ *                               only one element from the array needs to match; 'and'
+ *                               means all elements must match; 'not' means no elements may
+ *                               match. Default 'and'.
+ * @return array A list of post type names.
+ */
+function get_post_types_by_support( $feature, $operator = 'and' ) {
+	global $_wp_post_type_features;
+
+	$features = array_fill_keys( (array) $feature, true );
+
+	return array_keys( wp_filter_object_list( $_wp_post_type_features, $features, $operator ) );
 }
 
 /**
@@ -3236,6 +3262,28 @@ function wp_insert_post( $postarr, $wp_error = false ) {
 	 * @param array $postarr     Array of sanitized, but otherwise unmodified post data.
 	 */
 	$post_parent = apply_filters( 'wp_insert_post_parent', $post_parent, $post_ID, compact( array_keys( $postarr ) ), $postarr );
+
+	/*
+	 * If the post is being untrashed and it has a desired slug stored in post meta,
+	 * reassign it.
+	 */
+	if ( 'trash' === $previous_status && 'trash' !== $post_status ) {
+		$desired_post_slug = get_post_meta( $post_ID, '_wp_desired_post_slug', true );
+		if ( $desired_post_slug ) {
+			delete_post_meta( $post_ID, '_wp_desired_post_slug' );
+			$post_name = $desired_post_slug;
+		}
+	}
+
+	// If a trashed post has the desired slug, change it and let this post have it.
+	if ( 'trash' !== $post_status && $post_name ) {
+		wp_add_trashed_suffix_to_post_name_for_trashed_posts( $post_name, $post_ID );
+	}
+
+	// When trashing an existing post, change its slug to allow non-trashed posts to use it.
+	if ( 'trash' === $post_status && 'trash' !== $previous_status && 'new' !== $previous_status ) {
+		$post_name = wp_add_trashed_suffix_to_post_name_for_post( $post_ID );
+	}
 
 	$post_name = wp_unique_post_slug( $post_name, $post_ID, $post_status, $post_type, $post_parent );
 
@@ -4847,7 +4895,7 @@ function wp_delete_attachment( $post_id, $force_delete = false ) {
 	/** This action is documented in wp-includes/post.php */
 	do_action( 'deleted_post', $post_id );
 
-	$uploadpath = wp_upload_dir();
+	$uploadpath = wp_get_upload_dir();
 
 	if ( ! empty($meta['thumb']) ) {
 		// Don't delete the thumb if another attachment uses it.
@@ -4964,9 +5012,9 @@ function wp_get_attachment_url( $post_id = 0 ) {
 
 	$url = '';
 	// Get attached file.
-	if ( $file = get_post_meta( $post->ID, '_wp_attached_file', true) ) {
+	if ( $file = get_post_meta( $post->ID, '_wp_attached_file', true ) ) {
 		// Get upload directory.
-		if ( ($uploads = wp_upload_dir()) && false === $uploads['error'] ) {
+		if ( ( $uploads = wp_get_upload_dir() ) && false === $uploads['error'] ) {
 			// Check that the upload base exists in the file location.
 			if ( 0 === strpos( $file, $uploads['basedir'] ) ) {
 				// Replace file location with url location.
@@ -4989,7 +5037,7 @@ function wp_get_attachment_url( $post_id = 0 ) {
 		$url = get_the_guid( $post->ID );
 	}
 
-	// On SSL front-end, URLs should be HTTPS.
+	// On SSL front end, URLs should be HTTPS.
 	if ( is_ssl() && ! is_admin() && 'wp-login.php' !== $GLOBALS['pagenow'] ) {
 		$url = set_url_scheme( $url );
 	}
@@ -5948,6 +5996,43 @@ function wp_delete_auto_drafts() {
 }
 
 /**
+ * Queue posts for lazyloading of term meta.
+ *
+ * @since 4.5.0
+ *
+ * @param array $posts Array of WP_Post objects.
+ */
+function wp_queue_posts_for_term_meta_lazyload( $posts ) {
+	$post_type_taxonomies = $term_ids = array();
+	foreach ( $posts as $post ) {
+		if ( ! ( $post instanceof WP_Post ) ) {
+			continue;
+		}
+
+		if ( ! isset( $post_type_taxonomies[ $post->post_type ] ) ) {
+			$post_type_taxonomies[ $post->post_type ] = get_object_taxonomies( $post->post_type );
+		}
+
+		foreach ( $post_type_taxonomies[ $post->post_type ] as $taxonomy ) {
+			// Term cache should already be primed by `update_post_term_cache()`.
+			$terms = get_object_term_cache( $post->ID, $taxonomy );
+			if ( false !== $terms ) {
+				foreach ( $terms as $term ) {
+					if ( ! isset( $term_ids[ $term->term_id ] ) ) {
+						$term_ids[] = $term->term_id;
+					}
+				}
+			}
+		}
+	}
+
+	if ( $term_ids ) {
+		$lazyloader = wp_metadata_lazyloader();
+		$lazyloader->queue_objects( 'term', $term_ids );
+	}
+}
+
+/**
  * Update the custom taxonomies' term counts when a post's status is changed.
  *
  * For example, default posts term counts (for custom taxonomies) don't include
@@ -5991,4 +6076,62 @@ function _prime_post_caches( $ids, $update_term_cache = true, $update_meta_cache
 
 		update_post_caches( $fresh_posts, 'any', $update_term_cache, $update_meta_cache );
 	}
+}
+
+/**
+ * Adds a suffix if any trashed posts have a given slug.
+ *
+ * Store its desired (i.e. current) slug so it can try to reclaim it
+ * if the post is untrashed.
+ *
+ * For internal use.
+ *
+ * @since 4.5.0
+ * @access private
+ *
+ * @param string $post_name Slug.
+ * @param string $post_ID   Optional. Post ID that should be ignored. Default 0.
+ */
+function wp_add_trashed_suffix_to_post_name_for_trashed_posts( $post_name, $post_ID = 0 ) {
+	$trashed_posts_with_desired_slug = get_posts( array(
+		'name' => $post_name,
+		'post_status' => 'trash',
+		'post_type' => 'any',
+		'nopaging' => true,
+		'post__not_in' => array( $post_ID )
+	) );
+
+	if ( ! empty( $trashed_posts_with_desired_slug ) ) {
+		foreach ( $trashed_posts_with_desired_slug as $_post ) {
+			wp_add_trashed_suffix_to_post_name_for_post( $_post );
+		}
+	}
+}
+
+/**
+ * Adds a trashed suffix For a given post.
+ *
+ * Store its desired (i.e. current) slug so it can try to reclaim it
+ * if the post is untrashed.
+ *
+ * For internal use.
+ *
+ * @since 4.5.0
+ * @access private
+ *
+ * @param WP_Post $post The post.
+ */
+function wp_add_trashed_suffix_to_post_name_for_post( $post ) {
+	global $wpdb;
+
+	$post = get_post( $post );
+
+	if ( strpos( $post->post_name, '-%trashed%' ) ) {
+		return $post->post_name;
+	}
+	add_post_meta( $post->ID, '_wp_desired_post_slug', $post->post_name );
+	$post_name = _truncate_post_slug( $post->post_name, 190 ) . '-%trashed%';
+	$wpdb->update( $wpdb->posts, array( 'post_name' => $post_name ), array( 'ID' => $post->ID ) );
+	clean_post_cache( $post->ID );
+	return $post_name;
 }

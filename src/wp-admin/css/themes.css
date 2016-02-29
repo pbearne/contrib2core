@@ -132,6 +132,7 @@
 	display: block;
 	overflow: hidden;
 	position: relative;
+	-webkit-backface-visibility: hidden; /* Prevents flicker of the screenshot on hover. */
 	-webkit-transition: opacity 0.2s ease-in-out;
 	transition: opacity 0.2s ease-in-out;
 }
@@ -246,7 +247,7 @@
  * The currently active theme
  */
 .theme-browser .theme.active .theme-name {
-	background: #2f2f2f;
+	background: #23282d;
 	color: #fff;
 	padding-right: 110px;
 	font-weight: 300;
@@ -302,7 +303,6 @@
 }
 
 .theme-browser .theme.add-new-theme a {
-	color: #999;
 	text-decoration: none;
 	display: block;
 	position: relative;
@@ -724,7 +724,7 @@ body.folded .theme-overlay .theme-wrap {
 }
 
 .theme-overlay .theme-version {
-	color: #999;
+	color: #72777c;
 	font-size: 13px;
 	font-weight: 400;
 	float: none;
@@ -734,7 +734,7 @@ body.folded .theme-overlay .theme-wrap {
 
 .theme-overlay .theme-author {
 	margin: 15px 0 25px;
-	color: #686868;
+	color: #72777c;
 	font-size: 16px;
 	font-weight: 400;
 	line-height: inherit;
@@ -1090,7 +1090,7 @@ body.show-upload-theme .upload-theme,
 }
 .upload-theme .install-help,
 .upload-plugin .install-help {
-	color: #999;
+	color: #555d66; /* #f1f1f1 background */
 	font-size: 18px;
 	font-style: normal;
 	margin: 0;
@@ -1148,7 +1148,7 @@ body.show-upload-theme p.no-themes {
 .theme-details .num-ratings,
 .theme-details .no-rating {
 	font-size: 11px;
-	color: #999;
+	color: #72777c;
 }
 
 .theme-details .no-rating {

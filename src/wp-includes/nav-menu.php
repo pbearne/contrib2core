@@ -196,12 +196,15 @@ function is_nav_menu_item( $menu_item_id = 0 ) {
 /**
  * Creates a navigation menu.
  *
+ * Note that `$menu_name` is expected to be pre-slashed.
+ *
  * @since 3.0.0
  *
  * @param string $menu_name Menu name.
  * @return int|WP_Error Menu ID on success, WP_Error object on failure.
  */
 function wp_create_nav_menu( $menu_name ) {
+	// expected_slashed ($menu_name)
 	return wp_update_nav_menu_object( 0, array( 'menu-name' => $menu_name ) );
 }
 
@@ -252,6 +255,8 @@ function wp_delete_nav_menu( $menu ) {
 /**
  * Save the properties of a menu or create a new menu with those properties.
  *
+ * Note that `$menu_data` is expected to be pre-slashed.
+ *
  * @since 3.0.0
  *
  * @param int   $menu_id   The ID of the menu or "0" to create a new menu.
@@ -259,6 +264,7 @@ function wp_delete_nav_menu( $menu ) {
  * @return int|WP_Error Menu ID on success, WP_Error object on failure.
  */
 function wp_update_nav_menu_object( $menu_id = 0, $menu_data = array() ) {
+	// expected_slashed ($menu_data)
 	$menu_id = (int) $menu_id;
 
 	$_menu = wp_get_nav_menu_object( $menu_id );
@@ -343,6 +349,9 @@ function wp_update_nav_menu_object( $menu_id = 0, $menu_data = array() ) {
 
 /**
  * Save the properties of a menu item or create a new one.
+ *
+ * The menu-item-title, menu-item-description, and menu-item-attr-title are expected
+ * to be pre-slashed since they are passed directly into `wp_insert_post()`.
  *
  * @since 3.0.0
  *
@@ -666,7 +675,7 @@ function wp_get_nav_menu_items( $menu, $args = array() ) {
 
 	$items = array_map( 'wp_setup_nav_menu_item', $items );
 
-	if ( ! is_admin() ) { // Remove invalid items only in frontend
+	if ( ! is_admin() ) { // Remove invalid items only in front end
 		$items = array_filter( $items, '_is_valid_nav_menu_item' );
 	}
 

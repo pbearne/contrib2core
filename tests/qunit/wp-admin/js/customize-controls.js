@@ -76,6 +76,11 @@ jQuery( window ).load( function (){
 
 	};
 
+	module( 'Customizer Previewed Device' );
+	test( 'Previewed device defaults to desktop.', function () {
+		equal( wp.customize.previewedDevice.get(), 'desktop' );
+	} );
+
 	module( 'Customizer Setting in Fixture' );
 	test( 'Setting has fixture value', function () {
 		equal( wp.customize( 'fixture-setting' )(), 'Lorem Ipsum' );
@@ -93,6 +98,20 @@ jQuery( window ).load( function (){
 	test( 'Control has the section fixture section ID', function () {
 		var control = wp.customize.control( 'fixture-control' );
 		equal( control.section(), 'fixture-section' );
+	} );
+
+	module( 'Customizer control without associated settings' );
+	test( 'Control can be created without settings', function() {
+		var control = new wp.customize.Control( 'settingless', {
+			params: {
+				content: jQuery( '<li class="settingless">Hello World</li>' ),
+				section: 'fixture-section'
+			}
+		} );
+		wp.customize.control.add( control.id, control );
+		equal( control.deferred.embedded.state(), 'resolved' );
+		ok( null === control.setting );
+		ok( jQuery.isEmptyObject( control.settings ) );
 	} );
 
 	// Begin sections.

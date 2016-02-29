@@ -162,9 +162,9 @@ if ( ! validate_current_theme() || isset( $_GET['broken'] ) ) : ?>
 <div id="message1" class="updated notice is-dismissible"><p><?php _e('The active theme is broken. Reverting to the default theme.'); ?></p></div>
 <?php elseif ( isset($_GET['activated']) ) :
 		if ( isset( $_GET['previewed'] ) ) { ?>
-		<div id="message2" class="updated notice is-dismissible"><p><?php printf( __( 'Settings saved and theme activated. <a href="%s">Visit site</a>' ), home_url( '/' ) ); ?></p></div>
+		<div id="message2" class="updated notice is-dismissible"><p><?php _e( 'Settings saved and theme activated.' ); ?> <a href="<?php echo home_url( '/' ); ?>"><?php _e( 'Visit site' ); ?></a></p></div>
 		<?php } else { ?>
-<div id="message2" class="updated notice is-dismissible"><p><?php printf( __( 'New theme activated. <a href="%s">Visit site</a>' ), home_url( '/' ) ); ?></p></div><?php
+<div id="message2" class="updated notice is-dismissible"><p><?php _e( 'New theme activated.' ); ?> <a href="<?php echo home_url( '/' ); ?>"><?php _e( 'Visit site' ); ?></a></p></div><?php
 		}
 	elseif ( isset($_GET['deleted']) ) : ?>
 <div id="message3" class="updated notice is-dismissible"><p><?php _e('Theme deleted.') ?></p></div>
@@ -295,7 +295,7 @@ if ( ! is_multisite() && current_user_can('edit_themes') && $broken_themes = wp_
 
 <div class="broken-themes">
 <h3><?php _e('Broken Themes'); ?></h3>
-<p><?php _e('The following themes are installed but incomplete. Themes must have a stylesheet and a template.'); ?></p>
+<p><?php _e( 'The following themes are installed but incomplete.' ); ?></p>
 
 <?php
 $can_delete = current_user_can( 'delete_themes' );

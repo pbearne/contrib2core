@@ -41,7 +41,7 @@
 				if ( url.length > 40 && ( index = url.indexOf( '/' ) ) !== -1 && ( lastIndex = url.lastIndexOf( '/' ) ) !== -1 && lastIndex !== index ) {
 					// If the beginning + ending are shorter that 40 chars, show more of the ending
 					if ( index + url.length - lastIndex < 40 ) {
-						lastIndex =  -( 40 - ( index + 1 ) );
+						lastIndex = -( 40 - ( index + 1 ) );
 					}
 
 					url = url.slice( 0, index + 1 ) + '\u2026' + url.slice( lastIndex );
@@ -57,42 +57,83 @@
 			return (
 				'<div id="' + this._id + '" class="wp-link-input">' +
 					'<input type="text" value="" tabindex="-1" placeholder="' + tinymce.translate('Paste URL or type to search') + '" />' +
+					'<input type="text" style="display:none" value="" />' +
 				'</div>'
 			);
 		},
 		setURL: function( url ) {
 			this.getEl().firstChild.value = url;
+		},
+		getURL: function() {
+			return tinymce.trim( this.getEl().firstChild.value );
+		},
+		getLinkText: function() {
+			var text = this.getEl().firstChild.nextSibling.value;
+
+			if ( ! tinymce.trim( text ) ) {
+				return '';
+			}
+
+			return text.replace( /[\r\n\t ]+/g, ' ' );
+		},
+		reset: function() {
+			var urlInput = this.getEl().firstChild;
+
+			urlInput.value = '';
+			urlInput.nextSibling.value = '';
 		}
 	} );
 
 	tinymce.PluginManager.add( 'wplink', function( editor ) {
-		var a;
 		var toolbar;
 		var editToolbar;
 		var previewInstance;
 		var inputInstance;
+		var linkNode;
 		var $ = window.jQuery;
 
 		function getSelectedLink() {
-			var href,
-				selectedNode = editor.selection.getNode(),
-				selectedText = editor.selection.getContent(),
-				link = editor.dom.getParent( selectedNode, 'a[href]' );
+			var href, html,
+				node = editor.selection.getNode(),
+				link = editor.dom.getParent( node, 'a[href]' );
 
-			if ( ! link && selectedText.indexOf( '</a>' ) !== -1 ) {
-				href = selectedText.match( /href="([^">]+)"/ );
+			if ( ! link ) {
+				html = editor.selection.getContent({ format: 'raw' });
 
-				if ( href && href[1] ) {
-					link = editor.$( 'a[href="' + href[1] + '"]', selectedNode )[0];
-				}
+				if ( html && html.indexOf( '</a>' ) !== -1 ) {
+					href = html.match( /href="([^">]+)"/ );
 
-				if ( link ) {
-					editor.selection.select( link );
-					editor.nodeChanged();
+					if ( href && href[1] ) {
+						link = editor.$( 'a[href="' + href[1] + '"]', node )[0];
+					}
+
+					if ( link ) {
+						editor.selection.select( link );
+					}
 				}
 			}
 
 			return link;
+		}
+
+		function removePlaceholders() {
+			editor.$( 'a' ).each( function( i, element ) {
+				var $element = editor.$( element );
+
+				if ( $element.attr( 'href' ) === '_wp_link_placeholder' ) {
+					editor.dom.remove( element, true );
+				} else if ( $element.attr( 'data-wplink-edit' ) ) {
+					$element.attr( 'data-wplink-edit', null );
+				}
+			});
+		}
+
+		function removePlaceholderStrings( content, dataAttr ) {
+			if ( dataAttr ) {
+				content = content.replace( / data-wplink-edit="true"/g, '' );
+			}
+
+			return content.replace( /<a [^>]*?href="_wp_link_placeholder"[^>]*>([\s\S]+)<\/a>/g, '$1' );
 		}
 
 		editor.on( 'preinit', function() {
@@ -103,32 +144,59 @@
 					'wp_link_remove'
 				], true );
 
-				editToolbar = editor.wp._createToolbar( [
+				var editButtons = [
 					'wp_link_input',
-					'wp_link_apply',
-					'wp_link_advanced'
-				], true );
+					'wp_link_apply'
+				];
+
+				if ( typeof window.wpLink !== 'undefined' ) {
+					editButtons.push( 'wp_link_advanced' );
+				}
+
+				editToolbar = editor.wp._createToolbar( editButtons, true );
 
 				editToolbar.on( 'show', function() {
-					var inputNode = editToolbar.find( 'toolbar' )[0];
+					if ( ! tinymce.$( document.body ).hasClass( 'modal-open' ) ) {
+						window.setTimeout( function() {
+							var element = editToolbar.$el.find( 'input.ui-autocomplete-input' )[0],
+								selection = linkNode && ( linkNode.textContent || linkNode.innerText );
 
-					inputNode && inputNode.focus( true );
-					a = getSelectedLink();
+							if ( element ) {
+								if ( ! element.value && selection && typeof window.wpLink !== 'undefined' ) {
+									element.value = window.wpLink.getUrlFromSelection( selection );
+								}
+
+								element.focus();
+								element.select();
+							}
+						} );
+					}
 				} );
 
 				editToolbar.on( 'hide', function() {
-					editToolbar.scrolling || editor.execCommand( 'wp_link_cancel' );
+					if ( ! editToolbar.scrolling ) {
+						editor.execCommand( 'wp_link_cancel' );
+					}
 				} );
 			}
 		} );
 
 		editor.addCommand( 'WP_Link', function() {
-			var link = getSelectedLink();
+			if ( tinymce.Env.ie && tinymce.Env.ie < 10 && typeof window.wpLink !== 'undefined' ) {
+				window.wpLink.open( editor.id );
+				return;
+			}
 
-			if ( link ) {
-				editor.dom.setAttribs( link, { 'data-wp-edit': true } );
+			linkNode = getSelectedLink();
+			editToolbar.tempHide = false;
+
+			if ( linkNode ) {
+				editor.dom.setAttribs( linkNode, { 'data-wplink-edit': true } );
 			} else {
+				removePlaceholders();
 				editor.execCommand( 'mceInsertLink', false, { href: '_wp_link_placeholder' } );
+
+				linkNode = editor.$( 'a[href="_wp_link_placeholder"]' )[0];
 				editor.nodeChanged();
 			}
 		} );
@@ -138,40 +206,40 @@
 				return;
 			}
 
-			var href = tinymce.trim( inputInstance.getEl().firstChild.value );
+			var href, text;
 
-			if ( href && ! /^(?:[a-z]+:|#|\?|\.|\/)/.test( href ) ) {
-				href = 'http://' + href;
-			}
+			if ( linkNode ) {
+				href = inputInstance.getURL();
+				text = inputInstance.getLinkText();
+				editor.focus();
 
-			if ( ! href ) {
-				editor.dom.remove( a, true );
-				return;
-			}
+				if ( ! href ) {
+					editor.dom.remove( linkNode, true );
+					return;
+				}
 
-			if ( a ) {
-				editor.dom.setAttribs( a, { href: href, 'data-wp-edit': null } );
-			}
+				if ( ! /^(?:[a-z]+:|#|\?|\.|\/)/.test( href ) ) {
+					href = 'http://' + href;
+				}
 
-			a = false;
+				editor.dom.setAttribs( linkNode, { href: href, 'data-wplink-edit': null } );
 
-			editor.nodeChanged();
-			editor.focus();
-		} );
-
-		editor.addCommand( 'wp_link_cancel', function() {
-			if ( a ) {
-				if ( editor.$( a ).attr( 'href' ) === '_wp_link_placeholder' ) {
-					editor.dom.remove( a, true );
-				} else {
-					editor.dom.setAttribs( a, { 'data-wp-edit': null } );
+				if ( ! tinymce.trim( linkNode.innerHTML ) ) {
+					editor.$( linkNode ).text( text || href );
 				}
 			}
 
-			a = false;
-
+			inputInstance.reset();
 			editor.nodeChanged();
-			editor.focus();
+		} );
+
+		editor.addCommand( 'wp_link_cancel', function() {
+			if ( ! editToolbar.tempHide ) {
+				inputInstance.reset();
+				removePlaceholders();
+				editor.focus();
+				editToolbar.tempHide = false;
+			}
 		} );
 
 		// WP default shortcut
@@ -219,6 +287,20 @@
 			}
 		} );
 
+		// Remove any remaining placeholders on saving.
+		editor.on( 'savecontent', function( event ) {
+			event.content = removePlaceholderStrings( event.content, true );
+		});
+
+		// Prevent adding undo levels on inserting link placeholder.
+		editor.on( 'BeforeAddUndo', function( event ) {
+			if ( event.lastLevel && event.lastLevel.content && event.level.content &&
+				event.lastLevel.content === removePlaceholderStrings( event.level.content ) ) {
+
+				event.preventDefault();
+			}
+		});
+
 		editor.addButton( 'wp_link_preview', {
 			type: 'WPLinkPreview',
 			onPostRender: function() {
@@ -229,16 +311,17 @@
 		editor.addButton( 'wp_link_input', {
 			type: 'WPLinkInput',
 			onPostRender: function() {
-				var input = this.getEl().firstChild;
-				var cache;
-				var last;
+				var element = this.getEl(),
+					input = element.firstChild,
+					$input, cache, last;
 
 				inputInstance = this;
 
-				if ( $ ) {
-					$( input )
-					.on( 'keydown', function() {
-						$( input ).removeAttr( 'aria-activedescendant' );
+				if ( $ && $.ui && $.ui.autocomplete ) {
+					$input = $( input );
+
+					$input.on( 'keydown', function() {
+						$input.removeAttr( 'aria-activedescendant' );
 					} )
 					.autocomplete( {
 						source: function( request, response ) {
@@ -264,23 +347,24 @@
 							last = request.term;
 						},
 						focus: function( event, ui ) {
-							$( input ).attr( 'aria-activedescendant', 'mce-wp-autocomplete-' + ui.item.ID );
+							$input.attr( 'aria-activedescendant', 'mce-wp-autocomplete-' + ui.item.ID );
 						},
 						select: function( event, ui ) {
-							$( input ).val( ui.item.permalink );
+							$input.val( ui.item.permalink );
+							$( element.firstChild.nextSibling ).val( ui.item.title );
 							return false;
 						},
 						open: function() {
-							$( input ).attr( 'aria-expanded', 'true' );
+							$input.attr( 'aria-expanded', 'true' );
 							editToolbar.blockHide = true;
 						},
 						close: function() {
-							$( input ).attr( 'aria-expanded', 'false' );
+							$input.attr( 'aria-expanded', 'false' );
 							editToolbar.blockHide = false;
 						},
 						minLength: 2,
 						position: {
-							my: 'left top+5'
+							my: 'left top+2'
 						}
 					} ).autocomplete( 'instance' )._renderItem = function( ul, item ) {
 						return $( '<li role="option" id="mce-wp-autocomplete-' + item.ID + '">' )
@@ -288,44 +372,55 @@
 						.appendTo( ul );
 					};
 
-					$( input )
-					.attr( {
+					$input.attr( {
 						'role': 'combobox',
 						'aria-autocomplete': 'list',
 						'aria-expanded': 'false',
-						'aria-owns': $( input ).autocomplete( 'widget' ).attr( 'id' )
+						'aria-owns': $input.autocomplete( 'widget' ).attr( 'id' )
 					}  )
 					.on( 'focus', function() {
-						$( input ).autocomplete( 'search' );
+						$input.autocomplete( 'search' );
 					} )
 					.autocomplete( 'widget' )
-						.addClass( 'mce-wp-autocomplete' )
+						.addClass( 'wplink-autocomplete' )
 						.attr( 'role', 'listbox' );
 				}
 
 				tinymce.$( input ).on( 'keydown', function( event ) {
-					event.keyCode === 13 && editor.execCommand( 'wp_link_apply' );
+					if ( event.keyCode === 13 ) {
+						editor.execCommand( 'wp_link_apply' );
+						event.preventDefault();
+					}
 				} );
 			}
 		} );
 
 		editor.on( 'wptoolbar', function( event ) {
-			var anchor = editor.dom.getParent( event.element, 'a' ),
-				$anchor,
-				href, edit;
+			var linkNode = editor.dom.getParent( event.element, 'a' ),
+				$linkNode, href, edit;
 
-			if ( anchor ) {
-				$anchor = editor.$( anchor );
-				href = $anchor.attr( 'href' );
-				edit = $anchor.attr( 'data-wp-edit' );
+			if ( tinymce.$( document.body ).hasClass( 'modal-open' ) ) {
+				editToolbar.tempHide = true;
+				return;
+			}
+
+			editToolbar.tempHide = false;
+
+			if ( linkNode ) {
+				$linkNode = editor.$( linkNode );
+				href = $linkNode.attr( 'href' );
+				edit = $linkNode.attr( 'data-wplink-edit' );
 
 				if ( href === '_wp_link_placeholder' || edit ) {
-					inputInstance.setURL( edit ? href : '' );
-					event.element = anchor;
+					if ( edit && ! inputInstance.getURL() ) {
+						inputInstance.setURL( href );
+					}
+
+					event.element = linkNode;
 					event.toolbar = editToolbar;
-				} else if ( href && ! $anchor.find( 'img' ).length ) {
+				} else if ( href && ! $linkNode.find( 'img' ).length ) {
 					previewInstance.setURL( href );
-					event.element = anchor;
+					event.element = linkNode;
 					event.toolbar = toolbar;
 				}
 			}
@@ -348,8 +443,16 @@
 			tooltip: 'Advanced',
 			icon: 'dashicon dashicons-admin-generic',
 			onclick: function() {
-				editor.execCommand( 'wp_link_apply' );
-				window.wpLink && window.wpLink.open( editor.id );
+				if ( typeof window.wpLink !== 'undefined' ) {
+					var url = inputInstance.getURL() || null,
+						text = inputInstance.getLinkText() || null;
+
+					editor.focus(); // Needed for IE
+					window.wpLink.open( editor.id, url, text, linkNode );
+
+					editToolbar.tempHide = true;
+					inputInstance.reset();
+				}
 			}
 		} );
 
@@ -359,5 +462,12 @@
 			cmd: 'wp_link_apply',
 			classes: 'widget btn primary'
 		} );
+
+		return {
+			close: function() {
+				editToolbar.tempHide = false;
+				editor.execCommand( 'wp_link_cancel' );
+			}
+		};
 	} );
 } )( window.tinymce );

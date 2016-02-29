@@ -108,7 +108,7 @@ function wpmu_delete_blog( $blog_id, $drop = false ) {
 	}
 
 	if ( $drop ) {
-		$uploads = wp_upload_dir();
+		$uploads = wp_get_upload_dir();
 
 		$tables = $wpdb->tables( 'blog' );
 		/**
@@ -342,16 +342,16 @@ function send_confirmation_on_profile_email() {
 
 		if ( $wpdb->get_var( $wpdb->prepare( "SELECT user_email FROM {$wpdb->users} WHERE user_email=%s", $_POST['email'] ) ) ) {
 			$errors->add( 'user_email', __( "<strong>ERROR</strong>: The email address is already used." ), array( 'form-field' => 'email' ) );
-			delete_option( $current_user->ID . '_new_email' );
+			delete_user_meta( $current_user->ID, '_new_email' );
 			return;
 		}
 
 		$hash = md5( $_POST['email'] . time() . mt_rand() );
 		$new_user_email = array(
-				'hash' => $hash,
-				'newemail' => $_POST['email']
-				);
-		update_option( $current_user->ID . '_new_email', $new_user_email );
+			'hash' => $hash,
+			'newemail' => $_POST['email']
+		);
+		update_user_meta( $current_user->ID, '_new_email', $new_user_email );
 
 		/* translators: Do not translate USERNAME, ADMIN_URL, EMAIL, SITENAME, SITEURL: those are placeholders. */
 		$email_text = __( 'Howdy ###USERNAME###,
@@ -408,9 +408,9 @@ All at ###SITENAME###
  */
 function new_user_email_admin_notice() {
 	global $pagenow;
-	if ( 'profile.php' === $pagenow && isset( $_GET['updated'] ) && $email = get_option( get_current_user_id() . '_new_email' ) ) {
+	if ( 'profile.php' === $pagenow && isset( $_GET['updated'] ) && $email = get_user_meta( get_current_user_id(), '_new_email', true ) ) {
 		/* translators: %s: New email address */
-		echo '<div class="update-nag">' . sprintf( __( 'Your email address has not been updated yet. Please check your inbox at %s for a confirmation email.' ), esc_html( $email['newemail'] ) ) . '</div>';
+		echo '<div class="notice notice-info"><p>' . sprintf( __( 'Your email address has not been updated yet. Please check your inbox at %s for a confirmation email.' ), '<code>' . esc_html( $email['newemail'] ) . '</code>' ) . '</p></div>';
 	}
 }
 
@@ -1088,7 +1088,7 @@ function confirm_delete_users( $users ) {
 	</table>
 	<?php
 	/** This action is documented in wp-admin/users.php */
-	do_action( 'delete_user_form', $current_user );
+	do_action( 'delete_user_form', $current_user, $allusers );
 
 	if ( 1 == count( $users ) ) : ?>
 		<p><?php _e( 'Once you hit &#8220;Confirm Deletion&#8221;, the user will be permanently removed.' ); ?></p>

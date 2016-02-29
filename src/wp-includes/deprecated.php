@@ -13,14 +13,14 @@
  */
 
 /**
- * Entire Post data.
+ * Retrieves all post data for a given post.
  *
  * @since 0.71
  * @deprecated 1.5.1 Use get_post()
  * @see get_post()
  *
- * @param int $postid
- * @return array
+ * @param int $postid Post ID.
+ * @return array Post data.
  */
 function get_postdata($postid) {
 	_deprecated_function( __FUNCTION__, '1.5.1', 'get_post()' );
@@ -70,14 +70,14 @@ function start_wp() {
 }
 
 /**
- * Return or Print Category ID.
+ * Returns or prints a category ID.
  *
  * @since 0.71
  * @deprecated 0.71 Use get_the_category()
  * @see get_the_category()
  *
- * @param bool $echo
- * @return null|int
+ * @param bool $echo Optional. Whether to echo the output. Default true.
+ * @return int Category ID.
  */
 function the_category_ID($echo = true) {
 	_deprecated_function( __FUNCTION__, '0.71', 'get_the_category()' );
@@ -93,16 +93,16 @@ function the_category_ID($echo = true) {
 }
 
 /**
- * Print category with optional text before and after.
+ * Prints a category with optional text before and after.
  *
  * @since 0.71
  * @deprecated 0.71 Use get_the_category_by_ID()
  * @see get_the_category_by_ID()
  *
- * @param string $before
- * @param string $after
+ * @param string $before Optional. Text to display before the category. Default empty.
+ * @param string $after  Optional. Text to display after the category. Default empty.
  */
-function the_category_head($before='', $after='') {
+function the_category_head( $before = '', $after = '' ) {
 	global $currentcat, $previouscat;
 
 	_deprecated_function( __FUNCTION__, '0.71', 'get_the_category_by_ID()' );
@@ -119,7 +119,7 @@ function the_category_head($before='', $after='') {
 }
 
 /**
- * Prints link to the previous post.
+ * Prints a link to the previous post.
  *
  * @since 1.5.0
  * @deprecated 2.0.0 Use previous_post_link()
@@ -129,7 +129,7 @@ function the_category_head($before='', $after='') {
  * @param string $previous
  * @param string $title
  * @param string $in_same_cat
- * @param int $limitprev
+ * @param int    $limitprev
  * @param string $excluded_categories
  */
 function previous_post($format='%', $previous='previous post: ', $title='yes', $in_same_cat='no', $limitprev=1, $excluded_categories='') {
@@ -2567,7 +2567,6 @@ function wp_timezone_supported() {
  * @param bool   $media_buttons Optional. Whether to display media buttons. Default true.
  * @param int    $tab_index     Optional. Unused.
  * @param bool   $extended      Optional. Unused.
- * @param int $tab_index Optional, not used
  */
 function the_editor($content, $id = 'content', $prev_id = 'title', $media_buttons = true, $tab_index = 2, $extended = true) {
 	_deprecated_function( __FUNCTION__, '3.3', 'wp_editor()' );
@@ -2734,10 +2733,10 @@ function index_rel_link() {
  * @since 2.8.0
  * @deprecated 3.3.0
  *
- * @param string $title Optional. Link title format.
+ * @param string $title Optional. Link title format. Default '%title'.
  * @return string
  */
-function get_parent_post_rel_link($title = '%title') {
+function get_parent_post_rel_link( $title = '%title' ) {
 	_deprecated_function( __FUNCTION__, '3.3' );
 
 	if ( ! empty( $GLOBALS['post'] ) && ! empty( $GLOBALS['post']->post_parent ) )
@@ -2764,8 +2763,10 @@ function get_parent_post_rel_link($title = '%title') {
  *
  * @since 2.8.0
  * @deprecated 3.3.0
+ *
+ * @param string $title Optional. Link title format. Default '%title'.
  */
-function parent_post_rel_link($title = '%title') {
+function parent_post_rel_link( $title = '%title' ) {
 	_deprecated_function( __FUNCTION__, '3.3' );
 
 	echo get_parent_post_rel_link($title);
@@ -2776,6 +2777,8 @@ function parent_post_rel_link($title = '%title') {
  *
  * @since 3.2.0
  * @deprecated 3.3.0
+ *
+ * @param WP_Admin_Bar $wp_admin_bar WP_Admin_Bar instance.
  */
 function wp_admin_bar_dashboard_view_site_menu( $wp_admin_bar ) {
 	_deprecated_function( __FUNCTION__, '3.3' );
@@ -2816,6 +2819,10 @@ function is_blog_user( $blog_id = 0 ) {
  * @see error_log()
  *
  * @link http://www.php.net/manual/en/function.error-log.php
+ *
+ * @param string $filename File name.
+ * @param string $mode     Type of access you required to the stream.
+ * @return false Always false.
  */
 function debug_fopen( $filename, $mode ) {
 	_deprecated_function( __FUNCTION__, 'error_log()' );
@@ -2830,6 +2837,9 @@ function debug_fopen( $filename, $mode ) {
  * @see error_log()
  *
  * @link http://www.php.net/manual/en/function.error-log.php
+ *
+ * @param mixed  $fp     Unused.
+ * @param string $string Message to log.
  */
 function debug_fwrite( $fp, $string ) {
 	_deprecated_function( __FUNCTION__, 'error_log()' );
@@ -2845,6 +2855,8 @@ function debug_fwrite( $fp, $string ) {
  * @see error_log()
  *
  * @link http://www.php.net/manual/en/function.error-log.php
+ *
+ * @param mixed $fp Unused.
  */
 function debug_fclose( $fp ) {
 	_deprecated_function( __FUNCTION__, 'error_log()' );
@@ -3134,6 +3146,8 @@ function sticky_class( $post_id = null ) {
  * @since 2.3.4
  * @deprecated 3.5.0 Use get_post_ancestors()
  * @see get_post_ancestors()
+ *
+ * @param WP_Post &$post Post object, passed by reference (unused).
  */
 function _get_post_ancestors( &$post ) {
 	_deprecated_function( __FUNCTION__, '3.5' );
@@ -3332,6 +3346,9 @@ function wp_convert_bytes_to_hr( $bytes ) {
  * @since 2.9.0
  * @access private
  * @deprecated 3.7.0
+ *
+ * @param string $t Search terms to "tidy", e.g. trim.
+ * @return string Trimmed search terms.
  */
 function _search_terms_tidy( $t ) {
 	_deprecated_function( __FUNCTION__, '3.7' );
@@ -3365,6 +3382,9 @@ function rich_edit_exists() {
  * @since 2.7.0
  * @access private
  * @deprecated 3.9.0
+ *
+ * @param int $count Number of topics.
+ * @return int Number of topics.
  */
 function default_topic_count_text( $count ) {
 	return $count;
@@ -3715,4 +3735,18 @@ function popuplinks( $text ) {
 	_deprecated_function( __FUNCTION__, '4.5' );
 	$text = preg_replace('/<a (.+?)>/i', "<a $1 target='_blank' rel='external'>", $text);
 	return $text;
+}
+
+/**
+ * Returns the base URL of the uploads directory.
+ *
+ * @since 4.4.0
+ * @access private
+ * @deprecated 4.5.0
+ *
+ * @return string The base URL.
+ */
+function _wp_upload_dir_baseurl() {
+	$upload_dir = wp_get_upload_dir();
+	return $upload_dir['baseurl'];
 }

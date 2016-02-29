@@ -69,7 +69,6 @@ class Test_WP_Customize_Nav_Menu_Item_Setting extends WP_UnitTestCase {
 
 		$setting = new WP_Customize_Nav_Menu_Item_Setting( $this->wp_customize, 'nav_menu_item[123]' );
 		$this->assertEquals( 'nav_menu_item', $setting->type );
-		$this->assertEquals( 'postMessage', $setting->transport );
 		$this->assertEquals( 123, $setting->post_id );
 		$this->assertNull( $setting->previous_post_id );
 		$this->assertNull( $setting->update_status );
@@ -451,11 +450,11 @@ class Test_WP_Customize_Nav_Menu_Item_Setting extends WP_UnitTestCase {
 			'menu_item_parent' => 'asdasd',
 			'position' => -123,
 			'type' => 'custom<b>',
-			'title' => 'Hi<script>unfilteredHtml()</script>',
+			'title' => '\o/ o\'o Hi<script>unfilteredHtml()</script>',
 			'url' => 'javascript:alert(1)',
 			'target' => '" onclick="',
-			'attr_title' => '<b>bolded</b><script>unfilteredHtml()</script>',
-			'description' => '<b>Hello world</b><script>unfilteredHtml()</script>',
+			'attr_title' => '\o/ o\'o <b>bolded</b><script>unfilteredHtml()</script>',
+			'description' => '\o/ o\'o <b>Hello world</b><script>unfilteredHtml()</script>',
 			'classes' => 'hello " inject="',
 			'xfn' => 'hello " inject="',
 			'status' => 'forbidden',
@@ -470,11 +469,11 @@ class Test_WP_Customize_Nav_Menu_Item_Setting extends WP_UnitTestCase {
 			'menu_item_parent' => 0,
 			'position' => -123,
 			'type' => 'customb',
-			'title' => current_user_can( 'unfiltered_html' ) ? 'Hi<script>unfilteredHtml()</script>' : 'HiunfilteredHtml()',
+			'title' => current_user_can( 'unfiltered_html' ) ? '\o/ o\'o Hi<script>unfilteredHtml()</script>' : '\o/ o\'o HiunfilteredHtml()',
 			'url' => '',
 			'target' => 'onclick',
-			'attr_title' => current_user_can( 'unfiltered_html' ) ? '<b>bolded</b><script>unfilteredHtml()</script>' : '<b>bolded</b>unfilteredHtml()',
-			'description' => current_user_can( 'unfiltered_html' ) ? '<b>Hello world</b><script>unfilteredHtml()</script>' : '<b>Hello world</b>unfilteredHtml()',
+			'attr_title' => current_user_can( 'unfiltered_html' ) ? '\o/ o\'o <b>bolded</b><script>unfilteredHtml()</script>' : '\o/ o\'o <b>bolded</b>unfilteredHtml()',
+			'description' => current_user_can( 'unfiltered_html' ) ? '\o/ o\'o <b>Hello world</b><script>unfilteredHtml()</script>' : '\o/ o\'o <b>Hello world</b>unfilteredHtml()',
 			'classes' => 'hello  inject',
 			'xfn' => 'hello  inject',
 			'status' => 'draft',
@@ -489,7 +488,7 @@ class Test_WP_Customize_Nav_Menu_Item_Setting extends WP_UnitTestCase {
 			$this->assertEquals( $value, $sanitized[ $key ], "Expected $key to be sanitized." );
 		}
 
-		$nav_menu_item_id = wp_update_nav_menu_item( $menu_id, 0, array(
+		$nav_menu_item_id = wp_update_nav_menu_item( $menu_id, 0, wp_slash( array(
 			'menu-item-object-id' => $unsanitized['object_id'],
 			'menu-item-object' => $unsanitized['object'],
 			'menu-item-parent-id' => $unsanitized['menu_item_parent'],
@@ -503,7 +502,7 @@ class Test_WP_Customize_Nav_Menu_Item_Setting extends WP_UnitTestCase {
 			'menu-item-classes' => $unsanitized['classes'],
 			'menu-item-xfn' => $unsanitized['xfn'],
 			'menu-item-status' => $unsanitized['status'],
-		) );
+		) ) );
 
 		$post = get_post( $nav_menu_item_id );
 		$nav_menu_item = wp_setup_nav_menu_item( clone $post );
@@ -550,7 +549,7 @@ class Test_WP_Customize_Nav_Menu_Item_Setting extends WP_UnitTestCase {
 			'type' => 'post_type',
 			'object' => 'post',
 			'object_id' => $second_post_id,
-			'title' => 'Saludos',
+			'title' => 'Saludos \o/ o\'o',
 			'status' => 'publish',
 			'nav_menu_term_id' => $secondary_menu_id,
 		);
@@ -768,11 +767,11 @@ class Test_WP_Customize_Nav_Menu_Item_Setting extends WP_UnitTestCase {
 			'menu_item_parent' => 0,
 			'position'         => 2,
 			'type'             => 'post_type',
-			'title'            => 'Hello World',
+			'title'            => 'Hello \o/ o\'o World',
 			'url'              => '',
 			'target'           => '',
-			'attr_title'       => '">attempted <b>baddie</b>',
-			'description'      => 'Attempted <b>markup</b>',
+			'attr_title'       => '">att \o/ o\'o empted <b>baddie</b>',
+			'description'      => 'Attempted \o/ o\'o <b>markup</b>',
 			'classes'          => '',
 			'xfn'              => '',
 			'status'           => 'publish',
@@ -796,7 +795,8 @@ class Test_WP_Customize_Nav_Menu_Item_Setting extends WP_UnitTestCase {
 		$this->assertEquals( 123, $nav_menu_item->db_id );
 		$this->assertEquals( wp_get_current_user()->ID, $nav_menu_item->post_author );
 		$this->assertObjectHasAttribute( 'type_label', $nav_menu_item );
-		$this->assertEquals( apply_filters( 'nav_menu_attr_title', apply_filters( 'excerpt_save_pre', $post_value['attr_title'] ) ), $nav_menu_item->attr_title );
-		$this->assertEquals( 'Attempted markup', $nav_menu_item->description );
+		$expected = apply_filters( 'nav_menu_attr_title', wp_unslash( apply_filters( 'excerpt_save_pre', wp_slash( $post_value['attr_title'] ) ) ) );
+		$this->assertEquals( $expected, $nav_menu_item->attr_title );
+		$this->assertEquals( 'Attempted \o/ o&#8217;o markup', $nav_menu_item->description );
 	}
 }

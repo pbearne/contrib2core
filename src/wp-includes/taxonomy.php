@@ -156,13 +156,16 @@ function get_taxonomies( $args = array(), $output = 'names', $operator = 'and' )
 }
 
 /**
- * Return all of the taxonomy names that are of $object_type.
+ * Return the names or objects of the taxonomies which are registered for the requested object or object type, such as
+ * a post object or post type name.
  *
- * It appears that this function can be used to find all of the names inside of
- * $wp_taxonomies global variable.
+ * Example:
  *
- * `$taxonomies = get_object_taxonomies( 'post' )` Should
- * result in `Array( 'category', 'post_tag' )`
+ *     $taxonomies = get_object_taxonomies( 'post' );
+ * 
+ * This results in:
+ * 
+ *     Array( 'category', 'post_tag' )
  *
  * @since 2.3.0
  *
@@ -271,7 +274,8 @@ function is_taxonomy_hierarchical($taxonomy) {
  * @since 2.3.0
  * @since 4.2.0 Introduced `show_in_quick_edit` argument.
  * @since 4.4.0 The `show_ui` argument is now enforced on the term editing screen.
- * @since 4.4.0 The `public` argument now controls whether the taxonomy can be queried on the front-end.
+ * @since 4.4.0 The `public` argument now controls whether the taxonomy can be queried on the front end.
+ * @since 4.5.0 Introduced `publicly_queryable` argument.
  *
  * @global array $wp_taxonomies Registered taxonomies.
  * @global WP    $wp            WP instance.
@@ -812,8 +816,9 @@ function get_tax_sql( $tax_query, $primary_table, $primary_id_column ) {
  * @param string     $taxonomy Optional. Taxonomy name that $term is part of.
  * @param string     $output   Constant OBJECT, ARRAY_A, or ARRAY_N
  * @param string     $filter   Optional, default is raw or no WordPress defined filter will applied.
- * @return mixed Type corresponding to `$output` on success or null on failure. When `$output` is `OBJECT`,
- *               a WP_Term instance is returned. If taxonomy does not exist then WP_Error will be returned.
+ * @return array|WP_Term|WP_Error|null Object of the type specified by `$output` on success. When `$output` is 'OBJECT',
+ *                                     a WP_Term instance is returned. If taxonomy does not exist, a WP_Error is
+ *                                     returned. Returns null for miscellaneous failure.
  */
 function get_term( $term, $taxonomy = '', $output = OBJECT, $filter = 'raw' ) {
 	if ( empty( $term ) ) {
@@ -1071,20 +1076,37 @@ function get_term_to_edit( $id, $taxonomy ) {
  * The {@see 'get_terms_orderby'} filter passes the `ORDER BY` clause for the query
  * along with the $args array.
  *
+ * Prior to 4.5.0, the first parameter of `get_terms()` was a taxonomy or list of taxonomies:
+ *
+ *     $terms = get_terms( 'post_tag', array(
+ *         'hide_empty' => false,
+ *     ) );
+ *
+ * Since 4.5.0, taxonomies should be passed via the 'taxonomy' argument in the `$args` array:
+ *
+ *     $terms = get_terms( array(
+ *         'taxonomy' => 'post_tag',
+ *         'hide_empty' => false,
+ *     ) );
+ *
  * @since 2.3.0
  * @since 4.2.0 Introduced 'name' and 'childless' parameters.
  * @since 4.4.0 Introduced the ability to pass 'term_id' as an alias of 'id' for the `orderby` parameter.
  *              Introduced the 'meta_query' and 'update_term_meta_cache' parameters. Converted to return
  *              a list of WP_Term objects.
- * @since 4.5.0 Introduced 'meta_key' and 'meta_value' parameters. Introduced the ability to order results by metadata.
+ * @since 4.5.0 Changed the function signature so that the `$args` array can be provided as the first parameter.
+ *              Introduced 'meta_key' and 'meta_value' parameters. Introduced the ability to order results by metadata.
+ *
+ * @internal The `$deprecated` parameter is parsed for backward compatibility only.
  *
  * @global wpdb  $wpdb WordPress database abstraction object.
  * @global array $wp_filter
  *
- * @param string|array $taxonomies Taxonomy name or list of Taxonomy names.
  * @param array|string $args {
  *     Optional. Array or string of arguments to get terms.
  *
+ *     @type string|array $taxonomy               Taxonomy name, or array of taxonomies, to which results should
+ *                                                be limited.
  *     @type string       $orderby                Field(s) to order terms by. Accepts term fields ('name', 'slug',
  *                                                'term_group', 'term_id', 'id', 'description'), 'count' for term
  *                                                taxonomy count, 'include' to match the 'order' of the $include param,
@@ -1143,24 +1165,17 @@ function get_term_to_edit( $id, $taxonomy ) {
  *     @type string       $meta_value             Limit terms to those matching a specific metadata value. Usually used
  *                                                in conjunction with `$meta_key`.
  * }
+ * @param array $deprecated Argument array, when using the legacy function parameter format. If present, this
+ *                          parameter will be interpreted as `$args`, and the first function parameter will
+ *                          be parsed as a taxonomy or array of taxonomies.
  * @return array|int|WP_Error List of WP_Term instances and their children. Will return WP_Error, if any of $taxonomies
  *                            do not exist.
  */
-function get_terms( $taxonomies, $args = '' ) {
+function get_terms( $args = array(), $deprecated = '' ) {
 	global $wpdb;
-	$empty_array = array();
-
-	if ( ! is_array( $taxonomies ) ) {
-		$taxonomies = array( $taxonomies );
-	}
-
-	foreach ( $taxonomies as $taxonomy ) {
-		if ( ! taxonomy_exists($taxonomy) ) {
-			return new WP_Error( 'invalid_taxonomy', __( 'Invalid taxonomy' ) );
-		}
-	}
 
 	$defaults = array(
+		'taxonomy'               => null,
 		'orderby'                => 'name',
 		'order'                  => 'ASC',
 		'hide_empty'             => true,
@@ -1186,6 +1201,35 @@ function get_terms( $taxonomies, $args = '' ) {
 		'meta_query'             => ''
 	);
 
+	/*
+	 * Legacy argument format ($taxonomy, $args) takes precedence.
+	 *
+	 * We detect legacy argument format by checking if
+	 * (a) a second non-empty parameter is passed, or
+	 * (b) the first parameter shares no keys with the default array (ie, it's a list of taxonomies)
+	 */
+	$key_intersect  = array_intersect_key( $defaults, (array) $args );
+	$do_legacy_args = $deprecated || empty( $key_intersect );
+
+	$taxonomies = null;
+	if ( $do_legacy_args ) {
+		$taxonomies = (array) $args;
+		$args = $deprecated;
+	} elseif ( isset( $args['taxonomy'] ) && null !== $args['taxonomy'] ) {
+		$taxonomies = (array) $args['taxonomy'];
+		unset( $args['taxonomy'] );
+	}
+
+	$empty_array = array();
+
+	if ( $taxonomies ) {
+		foreach ( $taxonomies as $taxonomy ) {
+			if ( ! taxonomy_exists($taxonomy) ) {
+				return new WP_Error( 'invalid_taxonomy', __( 'Invalid taxonomy' ) );
+			}
+		}
+	}
+
 	/**
 	 * Filter the terms query default arguments.
 	 *
@@ -1203,9 +1247,11 @@ function get_terms( $taxonomies, $args = '' ) {
 
 	// Save queries by not crawling the tree in the case of multiple taxes or a flat tax.
 	$has_hierarchical_tax = false;
-	foreach ( $taxonomies as $_tax ) {
-		if ( is_taxonomy_hierarchical( $_tax ) ) {
-			$has_hierarchical_tax = true;
+	if ( $taxonomies ) {
+		foreach ( $taxonomies as $_tax ) {
+			if ( is_taxonomy_hierarchical( $_tax ) ) {
+				$has_hierarchical_tax = true;
+			}
 		}
 	}
 
@@ -1308,7 +1354,11 @@ function get_terms( $taxonomies, $args = '' ) {
 		$order = 'ASC';
 	}
 
-	$where = "tt.taxonomy IN ('" . implode("', '", $taxonomies) . "')";
+	$where_conditions = array();
+
+	if ( $taxonomies ) {
+		$where_conditions[] = "tt.taxonomy IN ('" . implode("', '", $taxonomies) . "')";
+	}
 
 	$exclude = $args['exclude'];
 	$exclude_tree = $args['exclude_tree'];
@@ -1322,8 +1372,7 @@ function get_terms( $taxonomies, $args = '' ) {
 	}
 
 	if ( ! empty( $inclusions ) ) {
-		$inclusions = ' AND t.term_id IN ( ' . $inclusions . ' )';
-		$where .= $inclusions;
+		$where_conditions[] = 't.term_id IN ( ' . $inclusions . ' )';
 	}
 
 	$exclusions = array();
@@ -1353,7 +1402,7 @@ function get_terms( $taxonomies, $args = '' ) {
 	}
 
 	if ( ! empty( $exclusions ) ) {
-		$exclusions = ' AND t.term_id NOT IN (' . implode( ',', array_map( 'intval', $exclusions ) ) . ')';
+		$exclusions = 't.term_id NOT IN (' . implode( ',', array_map( 'intval', $exclusions ) ) . ')';
 	} else {
 		$exclusions = '';
 	}
@@ -1370,7 +1419,8 @@ function get_terms( $taxonomies, $args = '' ) {
 	$exclusions = apply_filters( 'list_terms_exclusions', $exclusions, $args, $taxonomies );
 
 	if ( ! empty( $exclusions ) ) {
-		$where .= $exclusions;
+		// Must do string manipulation here for backward compatibility with filter.
+		$where_conditions[] = preg_replace( '/^\s*AND\s*/', '', $exclusions );
 	}
 
 	if ( ! empty( $args['name'] ) ) {
@@ -1380,30 +1430,30 @@ function get_terms( $taxonomies, $args = '' ) {
 			$_name = stripslashes( sanitize_term_field( 'name', $_name, 0, reset( $taxonomies ), 'db' ) );
 		}
 
-		$where .= " AND t.name IN ('" . implode( "', '", array_map( 'esc_sql', $names ) ) . "')";
+		$where_conditions[] = "t.name IN ('" . implode( "', '", array_map( 'esc_sql', $names ) ) . "')";
 	}
 
 	if ( ! empty( $args['slug'] ) ) {
 		if ( is_array( $args['slug'] ) ) {
 			$slug = array_map( 'sanitize_title', $args['slug'] );
-			$where .= " AND t.slug IN ('" . implode( "', '", $slug ) . "')";
+			$where_conditions[] = "t.slug IN ('" . implode( "', '", $slug ) . "')";
 		} else {
 			$slug = sanitize_title( $args['slug'] );
-			$where .= " AND t.slug = '$slug'";
+			$where_conditions[] = "t.slug = '$slug'";
 		}
 	}
 
 	if ( ! empty( $args['name__like'] ) ) {
-		$where .= $wpdb->prepare( " AND t.name LIKE %s", '%' . $wpdb->esc_like( $args['name__like'] ) . '%' );
+		$where_conditions[] = $wpdb->prepare( "t.name LIKE %s", '%' . $wpdb->esc_like( $args['name__like'] ) . '%' );
 	}
 
 	if ( ! empty( $args['description__like'] ) ) {
-		$where .= $wpdb->prepare( " AND tt.description LIKE %s", '%' . $wpdb->esc_like( $args['description__like'] ) . '%' );
+		$where_conditions[] = $wpdb->prepare( "tt.description LIKE %s", '%' . $wpdb->esc_like( $args['description__like'] ) . '%' );
 	}
 
 	if ( '' !== $parent ) {
 		$parent = (int) $parent;
-		$where .= " AND tt.parent = '$parent'";
+		$where_conditions[] = "tt.parent = '$parent'";
 	}
 
 	$hierarchical = $args['hierarchical'];
@@ -1411,7 +1461,7 @@ function get_terms( $taxonomies, $args = '' ) {
 		$hierarchical = false;
 	}
 	if ( $args['hide_empty'] && !$hierarchical ) {
-		$where .= ' AND tt.count > 0';
+		$where_conditions[] = 'tt.count > 0';
 	}
 
 	$number = $args['number'];
@@ -1430,7 +1480,7 @@ function get_terms( $taxonomies, $args = '' ) {
 
 	if ( ! empty( $args['search'] ) ) {
 		$like = '%' . $wpdb->esc_like( $args['search'] ) . '%';
-		$where .= $wpdb->prepare( ' AND ((t.name LIKE %s) OR (t.slug LIKE %s))', $like, $like );
+		$where_conditions[] = $wpdb->prepare( '((t.name LIKE %s) OR (t.slug LIKE %s))', $like, $like );
 	}
 
 	// Meta query support.
@@ -1443,8 +1493,8 @@ function get_terms( $taxonomies, $args = '' ) {
 	$meta_clauses = $mquery->get_clauses();
 
 	if ( ! empty( $meta_clauses ) ) {
-		$join  .= $mq_sql['join'];
-		$where .= $mq_sql['where'];
+		$join .= $mq_sql['join'];
+		$where_conditions[] = preg_replace( '/^\s*AND\s*/', '', $mq_sql['where'] );
 		$distinct .= "DISTINCT";
 
 		// 'orderby' support.
@@ -1532,6 +1582,8 @@ function get_terms( $taxonomies, $args = '' ) {
 
 	$join .= " INNER JOIN $wpdb->term_taxonomy AS tt ON t.term_id = tt.term_id";
 
+	$where = implode( ' AND ', $where_conditions );
+
 	$pieces = array( 'fields', 'join', 'where', 'distinct', 'orderby', 'order', 'limits' );
 
 	/**
@@ -1553,7 +1605,11 @@ function get_terms( $taxonomies, $args = '' ) {
 	$order = isset( $clauses[ 'order' ] ) ? $clauses[ 'order' ] : '';
 	$limits = isset( $clauses[ 'limits' ] ) ? $clauses[ 'limits' ] : '';
 
-	$query = "SELECT $distinct $fields FROM $wpdb->terms AS t $join WHERE $where $orderby $order $limits";
+	if ( $where ) {
+		$where = "WHERE $where";
+	}
+
+	$query = "SELECT $distinct $fields FROM $wpdb->terms AS t $join $where $orderby $order $limits";
 
 	// $args can be anything. Only use the args defined in defaults to compute the key.
 	$key = md5( serialize( wp_array_slice_assoc( $args, array_keys( $defaults ) ) ) . serialize( $taxonomies ) . $query );
@@ -1666,8 +1722,13 @@ function get_terms( $taxonomies, $args = '' ) {
 		$terms = $_terms;
 	}
 
-	if ( $number && is_array( $terms ) && count( $terms ) > $number ) {
-		$terms = array_slice( $terms, $offset, $number, true );
+	// Hierarchical queries are not limited, so 'offset' and 'number' must be handled now.
+	if ( $hierarchical && $number && is_array( $terms ) ) {
+		if ( $offset >= count( $terms ) ) {
+			$terms = array();
+		} else {
+			$terms = array_slice( $terms, $offset, $number, true );
+		}
 	}
 
 	wp_cache_add( $cache_key, $terms, 'terms', DAY_IN_SECONDS );

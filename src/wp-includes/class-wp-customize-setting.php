@@ -358,7 +358,7 @@ class WP_Customize_Setting {
 	 * Clear out the previewed-applied flag for a multidimensional-aggregated value whenever its post value is updated.
 	 *
 	 * This ensures that the new value will get sanitized and used the next time
-	 * that <code>WP_Customize_Setting::_multidimensional_preview_filter()</code>
+	 * that `WP_Customize_Setting::_multidimensional_preview_filter()`
 	 * is called for this setting.
 	 *
 	 * @since 4.4.0
@@ -496,7 +496,6 @@ class WP_Customize_Setting {
 	 * @return string|array|null Null if an input isn't valid, otherwise the sanitized value.
 	 */
 	public function sanitize( $value ) {
-		$value = wp_unslash( $value );
 
 		/**
 		 * Filter a Customize setting value in un-slashed form.

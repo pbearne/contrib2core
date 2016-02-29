@@ -229,14 +229,73 @@ CSS;
 		$this->assertEquals( $expected, get_echo( 'wp_print_styles' ) );
 	}
 
-    /**
-     * Testing 'wp_register_style' return boolean success/failure value.
-     *
-     * @ticket 31126
-     */
-    function test_wp_register_style(){
-        $this->assertTrue( wp_register_style( 'duplicate-handler', 'http://example.com' ) );
-        $this->assertFalse( wp_register_style( 'duplicate-handler', 'http://example.com' ) );
-    }
+	/**
+	 * Testing 'wp_register_style' return boolean success/failure value.
+	 *
+	 * @ticket 31126
+	 */
+	function test_wp_register_style() {
+		$this->assertTrue( wp_register_style( 'duplicate-handler', 'http://example.com' ) );
+		$this->assertFalse( wp_register_style( 'duplicate-handler', 'http://example.com' ) );
+	}
 
+	/**
+	 * @ticket 35229
+	 */
+	function test_wp_add_inline_style_for_handle_without_source() {
+		$style  = "a { color: blue; }";
+
+		$expected  = "<link rel='stylesheet' id='handle-one-css'  href='http://example.com?ver=1' type='text/css' media='all' />\n";
+		$expected .= "<link rel='stylesheet' id='handle-two-css'  href='http://example.com?ver=1' type='text/css' media='all' />\n";
+		$expected .= "<style id='handle-three-inline-css' type='text/css'>\n";
+		$expected .= "$style\n";
+		$expected .= "</style>\n";
+
+		wp_register_style( 'handle-one', 'http://example.com', array(), 1 );
+		wp_register_style( 'handle-two', 'http://example.com', array(), 1 );
+		wp_register_style( 'handle-three', false, array( 'handle-one', 'handle-two' ) );
+
+		wp_enqueue_style( 'handle-three' );
+		wp_add_inline_style( 'handle-three', $style );
+
+		$this->assertEquals( $expected, get_echo( 'wp_print_styles' ) );
+	}
+
+	/**
+	 * @ticket 35921
+	 * @dataProvider data_styles_with_media
+	 */
+	function test_wp_enqueue_style_with_media( $expected, $media ) {
+		wp_enqueue_style( 'handle', 'http://example.com', array(), 1, $media );
+		$this->assertContains( $expected, get_echo( 'wp_print_styles' ) );
+	}
+
+	function data_styles_with_media() {
+		return array(
+			array(
+				"media='all'",
+				'all'
+			),
+			array(
+				"media='(orientation: portrait)'",
+				'(orientation: portrait)'
+			),
+			array(
+				"media='(max-width: 640px)'",
+				'(max-width: 640px)'
+			),
+			array(
+				"media='print and (min-width: 25cm)'",
+				'print and (min-width: 25cm)'
+			),
+			array(
+				"media='screen and (color), projection and (color)'",
+				'screen and (color), projection and (color)'
+			),
+			array(
+				"media='not screen and (color)'",
+				'not screen and (color)'
+			),
+		);
+	}
 }

@@ -469,6 +469,30 @@ function update_comment_meta($comment_id, $meta_key, $meta_value, $prev_value = 
 }
 
 /**
+ * Queue comments for metadata lazyloading.
+ *
+ * @since 4.5.0
+ *
+ * @param array $comments Array of comment objects.
+ */
+function wp_queue_comments_for_comment_meta_lazyload( $comments ) {
+	// Don't use `wp_list_pluck()` to avoid by-reference manipulation.
+	$comment_ids = array();
+	if ( is_array( $comments ) ) {
+		foreach ( $comments as $comment ) {
+			if ( $comment instanceof WP_Comment ) {
+				$comment_ids[] = $comment->comment_ID;
+			}
+		}
+	}
+
+	if ( $comment_ids ) {
+		$lazyloader = wp_metadata_lazyloader();
+		$lazyloader->queue_objects( 'comment', $comment_ids );
+	}
+}
+
+/**
  * Sets the cookies used to store an unauthenticated commentator's identity. Typically used
  * to recall previous comments by this commentator that are still held in moderation.
  *
@@ -972,7 +996,7 @@ function wp_get_comment_fields_max_lengths() {
 			$max_length = 0;
 
 			// No point if we can't get the DB column lengths
-			if ( $col_length === false ) {
+			if ( is_wp_error( $col_length ) ) {
 				break;
 			}
 
@@ -1627,7 +1651,7 @@ function wp_filter_comment($commentdata) {
 	 *
 	 * @since 1.5.0
 	 *
-	 * @param int $comment_agent The comment author's browser user agent.
+	 * @param string $comment_agent The comment author's browser user agent.
 	 */
 	$commentdata['comment_agent'] = apply_filters( 'pre_comment_user_agent', ( isset( $commentdata['comment_agent'] ) ? $commentdata['comment_agent'] : '' ) );
 	/** This filter is documented in wp-includes/comment.php */
@@ -1637,7 +1661,7 @@ function wp_filter_comment($commentdata) {
 	 *
 	 * @since 1.5.0
 	 *
-	 * @param int $comment_content The comment content.
+	 * @param string $comment_content The comment content.
 	 */
 	$commentdata['comment_content'] = apply_filters( 'pre_comment_content', $commentdata['comment_content'] );
 	/**
@@ -1645,7 +1669,7 @@ function wp_filter_comment($commentdata) {
 	 *
 	 * @since 1.5.0
 	 *
-	 * @param int $comment_author_ip The comment author's IP.
+	 * @param string $comment_author_ip The comment author's IP.
 	 */
 	$commentdata['comment_author_IP'] = apply_filters( 'pre_comment_user_ip', $commentdata['comment_author_IP'] );
 	/** This filter is documented in wp-includes/comment.php */
@@ -1788,11 +1812,13 @@ function wp_new_comment( $commentdata ) {
 	 * Fires immediately after a comment is inserted into the database.
 	 *
 	 * @since 1.2.0
+	 * @since 4.5.0 The `$commentdata` parameter was added.
 	 *
 	 * @param int        $comment_ID       The comment ID.
 	 * @param int|string $comment_approved 1 if the comment is approved, 0 if not, 'spam' if spam.
+	 * @param array      $commentdata      Comment data.
 	 */
-	do_action( 'comment_post', $comment_ID, $commentdata['comment_approved'] );
+	do_action( 'comment_post', $comment_ID, $commentdata['comment_approved'], $commentdata );
 
 	return $comment_ID;
 }
@@ -2181,7 +2207,7 @@ function discover_pingback_server_uri( $url, $deprecated = '' ) {
 		return false;
 
 	//Do not search for a pingback server on our own uploads
-	$uploads_dir = wp_upload_dir();
+	$uploads_dir = wp_get_upload_dir();
 	if ( 0 === strpos($url, $uploads_dir['baseurl']) )
 		return false;
 

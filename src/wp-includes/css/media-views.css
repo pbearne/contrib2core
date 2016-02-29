@@ -114,8 +114,17 @@
 	-webkit-appearance: textfield;
 }
 
-.media-frame :-moz-placeholder {
-	color: #a9a9a9;
+.media-frame ::-webkit-input-placeholder {
+	color: #72777c;
+}
+
+.media-frame ::-moz-placeholder {
+	color: #72777c;
+	opacity: 1;
+}
+
+.media-frame :-ms-input-placeholder {
+	color: #72777c;
 }
 
 .media-frame .hidden {
@@ -2006,7 +2015,7 @@
 }
 
 .image-details .custom-size span small {
-	color: #999;
+	color: #555d66; /* #f3f3f3 background */
 	font-size: inherit;
 }
 

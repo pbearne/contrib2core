@@ -389,7 +389,7 @@ function _nx($single, $plural, $number, $context, $domain = 'default') {
 }
 
 /**
- * Registers plural strings in POT file, but don't translate them.
+ * Registers plural strings in POT file, but does not translate them.
  *
  * Used when you want to keep structures with translatable plural
  * strings and use them later when the number is known.
@@ -426,7 +426,7 @@ function _n_noop( $singular, $plural, $domain = null ) {
 }
 
 /**
- * Register plural strings with gettext context in the POT file, but don't translate them.
+ * Registers plural strings with gettext context in POT file, but does not translate them.
  *
  * Used when you want to keep structures with translatable plural
  * strings and use them later when the number is known.
@@ -793,10 +793,16 @@ function load_child_theme_textdomain( $domain, $path = false ) {
  */
 function get_translations_for_domain( $domain ) {
 	global $l10n;
-	if ( !isset( $l10n[$domain] ) ) {
-		$l10n[$domain] = new NOOP_Translations;
+	if ( isset( $l10n[ $domain ] ) ) {
+		return $l10n[ $domain ];
 	}
-	return $l10n[$domain];
+
+	static $noop_translations = null;
+	if ( null === $noop_translations ) {
+		$noop_translations = new NOOP_Translations;
+	}
+
+	return $noop_translations;
 }
 
 /**
@@ -811,7 +817,7 @@ function get_translations_for_domain( $domain ) {
  */
 function is_textdomain_loaded( $domain ) {
 	global $l10n;
-	return isset( $l10n[$domain] );
+	return isset( $l10n[ $domain ] );
 }
 
 /**

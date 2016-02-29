@@ -331,7 +331,7 @@ class WP {
 			if ( $t->query_var && isset( $this->query_vars[$t->query_var] ) )
 				$this->query_vars[$t->query_var] = str_replace( ' ', '+', $this->query_vars[$t->query_var] );
 
-		// Don't allow non-publicly queryable taxonomies to be queried from the front-end.
+		// Don't allow non-publicly queryable taxonomies to be queried from the front end.
 		if ( ! is_admin() ) {
 			foreach ( get_taxonomies( array( 'publicly_queryable' => false ), 'objects' ) as $taxonomy => $t ) {
 				/*
@@ -628,6 +628,21 @@ class WP {
  	 */
 	public function handle_404() {
 		global $wp_query;
+
+		/**
+		 * Filter whether to short-circuit default header status handling.
+		 *
+		 * Returning a non-false value from the filter will short-circuit the handling
+		 * and return early.
+		 *
+		 * @since 4.5.0
+		 *
+		 * @param bool     $preempt  Whether to short-circuit default header status handling. Default false.
+		 * @param WP_Query $wp_query WordPress Query object.
+		 */
+		if ( false !== apply_filters( 'pre_handle_404', false, $wp_query ) ) {
+			return;
+		}
 
 		// If we've already issued a 404, bail.
 		if ( is_404() )

@@ -36,14 +36,13 @@ function get_header( $name = null ) {
 
 	$templates = array();
 	$name = (string) $name;
-	if ( '' !== $name )
+	if ( '' !== $name ) {
 		$templates[] = "header-{$name}.php";
+	}
 
 	$templates[] = 'header.php';
 
-	// Backward compat code will be removed in a future release
-	if ('' == locate_template($templates, true))
-		load_template( ABSPATH . WPINC . '/theme-compat/header.php');
+	locate_template( $templates, true );
 }
 
 /**
@@ -76,14 +75,13 @@ function get_footer( $name = null ) {
 
 	$templates = array();
 	$name = (string) $name;
-	if ( '' !== $name )
+	if ( '' !== $name ) {
 		$templates[] = "footer-{$name}.php";
+	}
 
-	$templates[] = 'footer.php';
+	$templates[]    = 'footer.php';
 
-	// Backward compat code will be removed in a future release
-	if ('' == locate_template($templates, true))
-		load_template( ABSPATH . WPINC . '/theme-compat/footer.php');
+	locate_template( $templates, true );
 }
 
 /**
@@ -121,9 +119,7 @@ function get_sidebar( $name = null ) {
 
 	$templates[] = 'sidebar.php';
 
-	// Backward compat code will be removed in a future release
-	if ('' == locate_template($templates, true))
-		load_template( ABSPATH . WPINC . '/theme-compat/sidebar.php');
+	locate_template( $templates, true );
 }
 
 /**
@@ -386,7 +382,7 @@ function wp_registration_url() {
  *     @type string $redirect       URL to redirect to. Must be absolute, as in "https://example.com/mypage/".
  *                                  Default is to redirect back to the request URI.
  *     @type string $form_id        ID attribute value for the form. Default 'loginform'.
- *     @type string $label_username Label for the username field. Default 'Username'.
+ *     @type string $label_username Label for the username or email address field. Default 'Username or Email'.
  *     @type string $label_password Label for the password field. Default 'Password'.
  *     @type string $label_remember Label for the remember field. Default 'Remember Me'.
  *     @type string $label_log_in   Label for the submit button. Default 'Log In'.
@@ -408,7 +404,7 @@ function wp_login_form( $args = array() ) {
 		// Default 'redirect' value takes the user back to the request URI.
 		'redirect' => ( is_ssl() ? 'https://' : 'http://' ) . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'],
 		'form_id' => 'loginform',
-		'label_username' => __( 'Username' ),
+		'label_username' => __( 'Username or Email' ),
 		'label_password' => __( 'Password' ),
 		'label_remember' => __( 'Remember Me' ),
 		'label_log_in' => __( 'Log In' ),
@@ -836,6 +832,93 @@ function has_site_icon( $blog_id = 0 ) {
 }
 
 /**
+ * Whether the site has a Site Logo.
+ *
+ * @since 4.5.0
+ *
+ * @param int $blog_id Optional. ID of the blog in question. Default current blog.
+ * @return bool Whether the site has a site logo or not.
+ */
+function has_site_logo( $blog_id = 0 ) {
+	if ( is_multisite() && (int) $blog_id !== get_current_blog_id() ) {
+		switch_to_blog( $blog_id );
+	}
+
+	$site_logo_id = get_theme_mod( 'site_logo' );
+
+	if ( is_multisite() && ms_is_switched() ) {
+		restore_current_blog();
+	}
+
+	return (bool) $site_logo_id;
+}
+
+/**
+ * Returns a Site Logo, linked to home.
+ *
+ * @since 4.5.0
+ *
+ * @param int $blog_id Optional. ID of the blog in question. Default current blog.
+ * @return string Site logo markup.
+ */
+function get_the_site_logo( $blog_id = 0 ) {
+	$html = '';
+
+	if ( is_multisite() && (int) $blog_id !== get_current_blog_id() ) {
+		switch_to_blog( $blog_id );
+	}
+
+	$site_logo_id = get_theme_mod( 'site_logo' );
+
+	if ( is_multisite() && ms_is_switched() ) {
+		restore_current_blog();
+	}
+	$size = get_theme_support( 'site-logo' );
+	$size = $size[0]['size'];
+
+	// We have a logo. Logo is go.
+	if ( $site_logo_id ) {
+		$html = sprintf( '<a href="%1$s" class="site-logo-link" rel="home" itemprop="url">%2$s</a>',
+			esc_url( home_url( '/' ) ),
+			wp_get_attachment_image( $site_logo_id, $size, false, array(
+				'class'     => "site-logo attachment-$size",
+				'data-size' => $size,
+				'itemprop'  => 'logo',
+			) )
+		);
+	}
+
+	// If no logo is set but we're in the Customizer, leave a placeholder (needed for the live preview).
+	elseif ( is_customize_preview() ) {
+		$html = sprintf( '<a href="%1$s" class="site-logo-link" style="display:none;"><img class="site-logo" data-size="%2$s" /></a>',
+			esc_url( home_url( '/' ) ),
+			esc_attr( $size )
+		);
+	}
+
+	/**
+	 * Filter the Site Logo output.
+	 *
+	 * @since 4.5.0
+	 *
+	 * @param string $html Site Logo HTML output.
+	 * @param string $size Size specified in add_theme_support declaration, or 'thumbnail' default.
+	 */
+	return apply_filters( 'get_the_site_logo', $html, $size );
+}
+
+/**
+ * Displays a Site Logo, linked to home.
+ *
+ * @since 4.5.0
+ *
+ * @param int $blog_id Optional. ID of the blog in question. Default current blog.
+ */
+function the_site_logo( $blog_id = 0 ) {
+	echo get_the_site_logo( $blog_id );
+}
+
+/**
  * Returns document title for the current page.
  *
  * @since 4.4.0
@@ -1012,7 +1095,7 @@ function wp_title( $sep = '&raquo;', $display = true, $seplocation = '' ) {
 	$search   = get_query_var( 's' );
 	$title    = '';
 
-	$t_sep = '%WP_TITILE_SEP%'; // Temporary separator, for accurate flipping, if necessary
+	$t_sep = '%WP_TITLE_SEP%'; // Temporary separator, for accurate flipping, if necessary
 
 	// If there is a post
 	if ( is_single() || ( is_home() && ! is_front_page() ) || ( is_page() && ! is_front_page() ) ) {
@@ -2535,6 +2618,8 @@ function feed_links_extra( $args = array() ) {
 		'cattitle'    => __('%1$s %2$s %3$s Category Feed'),
 		/* translators: 1: blog name, 2: separator(raquo), 3: tag name */
 		'tagtitle'    => __('%1$s %2$s %3$s Tag Feed'),
+		/* translators: 1: blog name, 2: separator(raquo), 3: term name, 4: taxonomy singular name */
+		'taxtitle'    => __('%1$s %2$s %3$s %4$s Feed'),
 		/* translators: 1: blog name, 2: separator(raquo), 3: author name  */
 		'authortitle' => __('%1$s %2$s Posts by %3$s Feed'),
 		/* translators: 1: blog name, 2: separator(raquo), 3: search phrase */
@@ -2575,6 +2660,11 @@ function feed_links_extra( $args = array() ) {
 			$title = sprintf( $args['tagtitle'], get_bloginfo('name'), $args['separator'], $term->name );
 			$href = get_tag_feed_link( $term->term_id );
 		}
+	} elseif ( is_tax() ) {
+ 		$term = get_queried_object();
+ 		$tax = get_taxonomy( $term->taxonomy );
+ 		$title = sprintf( $args['taxtitle'], get_bloginfo('name'), $args['separator'], $term->name, $tax->labels->singular_name );
+ 		$href = get_term_feed_link( $term->term_id, $term->taxonomy );
 	} elseif ( is_author() ) {
 		$author_id = intval( get_query_var('author') );
 
@@ -3144,7 +3234,7 @@ function register_admin_color_schemes() {
 	wp_admin_css_color( 'fresh', _x( 'Default', 'admin color scheme' ),
 		false,
 		array( '#222', '#333', '#0073aa', '#00a0d2' ),
-		array( 'base' => '#999', 'focus' => '#00a0d2', 'current' => '#fff' )
+		array( 'base' => '#82878c', 'focus' => '#00a0d2', 'current' => '#fff' )
 	);
 
 	// Other color schemes are not available when running out of src

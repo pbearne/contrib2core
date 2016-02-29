@@ -12,6 +12,43 @@ class Tests_Term_getTerms extends WP_UnitTestCase {
 	}
 
 	/**
+	 * @ticket 35495
+	 */
+	public function test_should_accept_an_args_array_containing_taxonomy_for_first_parameter() {
+		register_taxonomy( 'wptests_tax', 'post' );
+		$term = self::factory()->term->create( array( 'taxonomy' => 'wptests_tax' ) );
+
+		$found = get_terms( array(
+			'taxonomy' => 'wptests_tax',
+			'hide_empty' => false,
+			'fields' => 'ids',
+			'update_term_meta_cache' => false,
+		) );
+
+		$this->assertEqualSets( array( $term ), $found );
+	}
+
+	/**
+	 * @ticket 35495
+	 */
+	public function test_excluding_taxonomy_arg_should_return_terms_from_all_taxonomies() {
+		register_taxonomy( 'wptests_tax1', 'post' );
+		register_taxonomy( 'wptests_tax2', 'post' );
+		$t1 = self::factory()->term->create( array( 'taxonomy' => 'wptests_tax1' ) );
+		$t2 = self::factory()->term->create( array( 'taxonomy' => 'wptests_tax2' ) );
+
+		$found = get_terms( array(
+			'hide_empty' => false,
+			'fields' => 'ids',
+			'update_term_meta_cache' => false,
+		) );
+
+		// There may be other terms lying around, so don't do an exact match.
+		$this->assertContains( $t1, $found );
+		$this->assertContains( $t2, $found );
+	}
+
+	/**
 	 * @ticket 23326
 	 */
 	public function test_get_terms_cache() {
@@ -2039,6 +2076,80 @@ class Tests_Term_getTerms extends WP_UnitTestCase {
 		) );
 
 		$this->assertSame( array( $terms[0], $terms[1] ), array_keys( $found ) );
+	}
+
+	/**
+	 * @ticket 35935
+	 */
+	public function test_hierarchical_offset_0_with_number_greater_than_total_available_count() {
+		register_taxonomy( 'wptests_tax', 'post', array( 'hierarchical' => true ) );
+
+		$terms = self::factory()->term->create_many( 2, array( 'taxonomy' => 'wptests_tax' ) );
+
+		$found = get_terms( 'wptests_tax', array(
+			'number'     => 3,
+			'offset'     => 0,
+			'hide_empty' => false,
+			'fields'     => 'ids',
+		) );
+		$this->assertEqualSets( $terms, $found );
+	}
+
+	/**
+	 * @ticket 35935
+	 */
+	public function test_hierarchical_offset_plus_number() {
+		register_taxonomy( 'wptests_tax', 'post', array( 'hierarchical' => true ) );
+
+		$terms = self::factory()->term->create_many( 3, array( 'taxonomy' => 'wptests_tax' ) );
+
+		$found = get_terms( 'wptests_tax', array(
+			'number'     => 1,
+			'offset'     => 1,
+			'hide_empty' => false,
+			'fields'     => 'ids',
+			'orderby'    => 'term_id',
+			'order'      => 'ASC',
+		) );
+		$this->assertEqualSets( array( $terms[1] ), $found );
+	}
+
+	/**
+	 * @ticket 35935
+	 */
+	public function test_hierarchical_offset_plus_number_exceeds_available_count() {
+		register_taxonomy( 'wptests_tax', 'post', array( 'hierarchical' => true ) );
+
+		$terms = self::factory()->term->create_many( 2, array( 'taxonomy' => 'wptests_tax' ) );
+
+		$found = get_terms( 'wptests_tax', array(
+			'number'     => 2,
+			'offset'     => 1,
+			'hide_empty' => false,
+			'fields'     => 'ids',
+			'orderby'    => 'term_id',
+			'order'      => 'ASC',
+		) );
+		$this->assertEqualSets( array( $terms[1] ), $found );
+	}
+
+	/**
+	 * @ticket 35935
+	 */
+	public function test_hierarchical_offset_exceeds_available_count() {
+		register_taxonomy( 'wptests_tax', 'post', array( 'hierarchical' => true ) );
+
+		$terms = self::factory()->term->create_many( 2, array( 'taxonomy' => 'wptests_tax' ) );
+
+		$found = get_terms( 'wptests_tax', array(
+			'number'     => 100,
+			'offset'     => 3,
+			'hide_empty' => false,
+			'fields'     => 'ids',
+			'orderby'    => 'term_id',
+			'order'      => 'ASC',
+		) );
+		$this->assertEqualSets( array(), $found );
 	}
 
 	protected function create_hierarchical_terms_and_posts() {

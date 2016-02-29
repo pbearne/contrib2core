@@ -86,6 +86,28 @@ class Tests_Dependencies_Scripts extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test script concatenation.
+	 */
+	public function test_script_concatenation() {
+		global $wp_scripts;
+
+		$wp_scripts->do_concat = true;
+		$wp_scripts->default_dirs = array( '/directory/' );
+
+		wp_enqueue_script( 'one', '/directory/script.js' );
+		wp_enqueue_script( 'two', '/directory/script.js' );
+		wp_enqueue_script( 'three', '/directory/script.js' );
+
+		wp_print_scripts();
+		$print_scripts = get_echo( '_print_scripts' );
+
+		$ver = get_bloginfo( 'version' );
+		$expected = "<script type='text/javascript' src='/wp-admin/load-scripts.php?c=0&amp;load%5B%5D=one,two,three&amp;ver={$ver}'></script>\n";
+
+		$this->assertEquals( $expected, $print_scripts );
+	}
+
+	/**
 	 * Testing `wp_script_add_data` with the data key.
 	 * @ticket 16024
 	 */
@@ -156,14 +178,294 @@ class Tests_Dependencies_Scripts extends WP_UnitTestCase {
 		$this->assertEquals( '', get_echo( 'wp_print_scripts' ) );
 	}
 
-    /**
-     * Testing 'wp_register_script' return boolean success/failure value.
-     *
-     * @ticket 31126
-     */
-    function test_wp_register_script() {
-        $this->assertTrue( wp_register_script( 'duplicate-handler', 'http://example.com' ) );
-        $this->assertFalse( wp_register_script( 'duplicate-handler', 'http://example.com' ) );
-    }
+	/**
+	 * Testing 'wp_register_script' return boolean success/failure value.
+	 *
+	 * @ticket 31126
+	 */
+	function test_wp_register_script() {
+		$this->assertTrue( wp_register_script( 'duplicate-handler', 'http://example.com' ) );
+		$this->assertFalse( wp_register_script( 'duplicate-handler', 'http://example.com' ) );
+	}
+
+	/**
+	 * @ticket 35229
+	 */
+	function test_wp_register_script_with_handle_without_source() {
+		$expected  = "<script type='text/javascript' src='http://example.com?ver=1'></script>\n";
+		$expected .= "<script type='text/javascript' src='http://example.com?ver=2'></script>\n";
+
+		wp_register_script( 'handle-one', 'http://example.com', array(), 1 );
+		wp_register_script( 'handle-two', 'http://example.com', array(), 2 );
+		wp_register_script( 'handle-three', false, array( 'handle-one', 'handle-two' ) );
+
+		wp_enqueue_script( 'handle-three' );
+
+		$this->assertEquals( $expected, get_echo( 'wp_print_scripts' ) );
+	}
+
+	/**
+	 * @ticket 35643
+	 */
+	function test_wp_enqueue_script_footer_alias() {
+		wp_register_script( 'foo', false, array( 'bar', 'baz' ), '1.0', true );
+		wp_register_script( 'bar', home_url( 'bar.js' ), array(), '1.0', true );
+		wp_register_script( 'baz', home_url( 'baz.js' ), array(), '1.0', true );
+
+		wp_enqueue_script( 'foo' );
+
+		$header = get_echo( 'wp_print_head_scripts' );
+		$footer = get_echo( 'wp_print_footer_scripts' );
+
+		$this->assertEmpty( $header );
+		$this->assertContains( home_url( 'bar.js' ), $footer );
+		$this->assertContains( home_url( 'baz.js' ), $footer );
+	}
+
+	/**
+	 * Test mismatch of groups in dependencies outputs all scripts in right order.
+	 *
+	 * @ticket 35873
+	 */
+	public function test_group_mismatch_in_deps() {
+		$scripts = new WP_Scripts;
+		$scripts->add( 'one', 'one', array(), 'v1', 1 );
+		$scripts->add( 'two', 'two', array( 'one' ) );
+		$scripts->add( 'three', 'three', array( 'two' ), 'v1', 1 );
+
+		$scripts->enqueue( array( 'three' ) );
+
+		$this->expectOutputRegex( '/^(?:<script[^>]+><\/script>\\n){7}$/' );
+
+		$scripts->do_items( false, 0 );
+		$this->assertContains( 'one', $scripts->done );
+		$this->assertContains( 'two', $scripts->done );
+		$this->assertNotContains( 'three', $scripts->done );
+
+		$scripts->do_items( false, 1 );
+		$this->assertContains( 'one', $scripts->done );
+		$this->assertContains( 'two', $scripts->done );
+		$this->assertContains( 'three', $scripts->done );
+
+		$scripts = new WP_Scripts;
+		$scripts->add( 'one', 'one', array(), 'v1', 1 );
+		$scripts->add( 'two', 'two', array( 'one' ), 'v1', 1 );
+		$scripts->add( 'three', 'three', array( 'one' ) );
+		$scripts->add( 'four', 'four', array( 'two', 'three' ), 'v1', 1 );
+
+		$scripts->enqueue( array( 'four' ) );
+
+		$scripts->do_items( false, 0 );
+		$this->assertContains( 'one', $scripts->done );
+		$this->assertNotContains( 'two', $scripts->done );
+		$this->assertContains( 'three', $scripts->done );
+		$this->assertNotContains( 'four', $scripts->done );
+
+		$scripts->do_items( false, 1 );
+		$this->assertContains( 'one', $scripts->done );
+		$this->assertContains( 'two', $scripts->done );
+		$this->assertContains( 'three', $scripts->done );
+		$this->assertContains( 'four', $scripts->done );
+	}
+
+	/**
+	 * @ticket 35873
+	 */
+	function test_wp_register_script_with_dependencies_in_head_and_footer() {
+		wp_register_script( 'parent', '/parent.js', array( 'child' ), '1', true ); // in footer
+		wp_register_script( 'child', '/child.js', array( 'grandchild' ), '1', false ); // in head
+		wp_register_script( 'grandchild', '/grandchild.js', array(), '1', true ); // in footer
+
+		wp_enqueue_script( 'parent' );
+
+		$header = get_echo( 'wp_print_head_scripts' );
+		$footer = get_echo( 'wp_print_footer_scripts' );
+
+		$expected_header  = "<script type='text/javascript' src='/grandchild.js?ver=1'></script>\n";
+		$expected_header .= "<script type='text/javascript' src='/child.js?ver=1'></script>\n";
+		$expected_footer  = "<script type='text/javascript' src='/parent.js?ver=1'></script>\n";
+
+		$this->assertEquals( $expected_header, $header );
+		$this->assertEquals( $expected_footer, $footer );
+	}
+
+	/**
+	 * @ticket 14853
+	 */
+	function test_wp_add_inline_script_returns_bool() {
+		$this->assertFalse( wp_add_inline_script( 'test-example', 'console.log("before");', 'before' ) );
+		wp_enqueue_script( 'test-example', 'example.com', array(), null );
+		$this->assertTrue( wp_add_inline_script( 'test-example', 'console.log("before");', 'before' ) );
+	}
+
+	/**
+	 * @ticket 14853
+	 */
+	function test_wp_add_inline_script_unknown_handle() {
+		$this->assertFalse( wp_add_inline_script( 'test-invalid', 'console.log("before");', 'before' ) );
+		$this->assertEquals( '', get_echo( 'wp_print_scripts' ) );
+	}
+
+	/**
+	 * @ticket 14853
+	 */
+	function test_wp_add_inline_script_before() {
+		wp_enqueue_script( 'test-example', 'example.com', array(), null );
+		wp_add_inline_script( 'test-example', 'console.log("before");', 'before' );
+
+		$expected  = "<script type='text/javascript'>\nconsole.log(\"before\");\n</script>\n";
+		$expected .= "<script type='text/javascript' src='http://example.com'></script>\n";
+
+		$this->assertEquals( $expected, get_echo( 'wp_print_scripts' ) );
+	}
+
+	/**
+	 * @ticket 14853
+	 */
+	function test_wp_add_inline_script_after() {
+		wp_enqueue_script( 'test-example', 'example.com', array(), null );
+		wp_add_inline_script( 'test-example', 'console.log("after");' );
+
+		$expected  = "<script type='text/javascript' src='http://example.com'></script>\n";
+		$expected .= "<script type='text/javascript'>\nconsole.log(\"after\");\n</script>\n";
+
+		$this->assertEquals( $expected, get_echo( 'wp_print_scripts' ) );
+	}
+
+	/**
+	 * @ticket 14853
+	 */
+	function test_wp_add_inline_script_before_and_after() {
+		wp_enqueue_script( 'test-example', 'example.com', array(), null );
+		wp_add_inline_script( 'test-example', 'console.log("before");', 'before' );
+		wp_add_inline_script( 'test-example', 'console.log("after");' );
+
+		$expected  = "<script type='text/javascript'>\nconsole.log(\"before\");\n</script>\n";
+		$expected .= "<script type='text/javascript' src='http://example.com'></script>\n";
+		$expected .= "<script type='text/javascript'>\nconsole.log(\"after\");\n</script>\n";
+
+		$this->assertEquals( $expected, get_echo( 'wp_print_scripts' ) );
+	}
+
+	/**
+	 * @ticket 14853
+	 */
+	function test_wp_add_inline_script_multiple() {
+		wp_enqueue_script( 'test-example', 'example.com', array(), null );
+		wp_add_inline_script( 'test-example', 'console.log("before");', 'before' );
+		wp_add_inline_script( 'test-example', 'console.log("before");', 'before' );
+		wp_add_inline_script( 'test-example', 'console.log("after");' );
+		wp_add_inline_script( 'test-example', 'console.log("after");' );
+
+		$expected  = "<script type='text/javascript'>\nconsole.log(\"before\");\nconsole.log(\"before\");\n</script>\n";
+		$expected .= "<script type='text/javascript' src='http://example.com'></script>\n";
+		$expected .= "<script type='text/javascript'>\nconsole.log(\"after\");\nconsole.log(\"after\");\n</script>\n";
+
+		$this->assertEquals( $expected, get_echo( 'wp_print_scripts' ) );
+	}
+
+	/**
+	 * @ticket 14853
+	 */
+	function test_wp_add_inline_script_localized_data_is_added_first() {
+		wp_enqueue_script( 'test-example', 'example.com', array(), null );
+		wp_localize_script( 'test-example', 'testExample', array( 'foo' => 'bar' ) );
+		wp_add_inline_script( 'test-example', 'console.log("before");', 'before' );
+		wp_add_inline_script( 'test-example', 'console.log("after");' );
+
+		$expected  = "<script type='text/javascript'>\n/* <![CDATA[ */\nvar testExample = {\"foo\":\"bar\"};\n/* ]]> */\n</script>\n";
+		$expected .= "<script type='text/javascript'>\nconsole.log(\"before\");\n</script>\n";
+		$expected .= "<script type='text/javascript' src='http://example.com'></script>\n";
+		$expected .= "<script type='text/javascript'>\nconsole.log(\"after\");\n</script>\n";
+
+		$this->assertEquals( $expected, get_echo( 'wp_print_scripts' ) );
+	}
+
+	/**
+	 * @ticket 14853-2
+	 */
+	public function test_wp_add_inline_script_before_with_concat() {
+		global $wp_scripts;
+
+		$wp_scripts->do_concat = true;
+		$wp_scripts->default_dirs = array( '/directory/' );
+
+		wp_enqueue_script( 'one', '/directory/one.js' );
+		wp_enqueue_script( 'two', '/directory/two.js' );
+		wp_enqueue_script( 'three', '/directory/three.js' );
+
+		wp_add_inline_script( 'one', 'console.log("before one");', 'before' );
+		wp_add_inline_script( 'two', 'console.log("before two");', 'before' );
+
+		wp_print_scripts();
+		$print_scripts = get_echo( '_print_scripts' );
+
+		$ver = get_bloginfo( 'version' );
+		$expected  = "<script type='text/javascript'>\nconsole.log(\"before one\");\n</script>\n";
+		$expected .= "<script type='text/javascript'>\nconsole.log(\"before two\");\n</script>\n";
+		$expected .= "<script type='text/javascript' src='/wp-admin/load-scripts.php?c=0&amp;load%5B%5D=one,two,three&amp;ver={$ver}'></script>\n";
+
+		$this->assertEquals( $expected, $print_scripts );
+	}
+
+	/**
+	 * @ticket 14853
+	 */
+	public function test_wp_add_inline_script_after_with_concat() {
+		global $wp_scripts;
+
+		$wp_scripts->do_concat = true;
+		$wp_scripts->default_dirs = array( '/directory/' );
+
+		wp_enqueue_script( 'one', '/directory/one.js' );
+		wp_enqueue_script( 'two', '/directory/two.js' );
+		wp_enqueue_script( 'three', '/directory/three.js' );
+		wp_enqueue_script( 'four', '/directory/four.js' );
+
+		wp_add_inline_script( 'two', 'console.log("after two");' );
+		wp_add_inline_script( 'three', 'console.log("after three");' );
+
+		wp_print_scripts();
+		$print_scripts = get_echo( '_print_scripts' );
+
+		$ver = get_bloginfo( 'version' );
+		$expected  = "<script type='text/javascript' src='/directory/two.js?ver={$ver}'></script>\n";
+		$expected .= "<script type='text/javascript'>\nconsole.log(\"after two\");\n</script>\n";
+		$expected .= "<script type='text/javascript' src='/directory/three.js?ver={$ver}'></script>\n";
+		$expected .= "<script type='text/javascript'>\nconsole.log(\"after three\");\n</script>\n";
+		$expected .= "<script type='text/javascript' src='/wp-admin/load-scripts.php?c=0&amp;load%5B%5D=one,four&amp;ver={$ver}'></script>\n";
+
+		$this->assertEquals( $expected, $print_scripts );
+	}
+
+	/**
+	 * @ticket 14853
+	 */
+	public function test_wp_add_inline_script_concat_with_conditional() {
+		global $wp_scripts;
+
+		$wp_scripts->do_concat = true;
+		$wp_scripts->default_dirs = array('/wp-admin/js/', '/wp-includes/js/'); // Default dirs as in wp-includes/script-loader.php
+
+		$expected_localized = "<!--[if gte IE 9]>\n";
+		$expected_localized .= "<script type='text/javascript'>\n/* <![CDATA[ */\nvar testExample = {\"foo\":\"bar\"};\n/* ]]> */\n</script>\n";
+		$expected_localized .= "<![endif]-->\n";
+
+		$expected  = "<!--[if gte IE 9]>\n";
+		$expected .= "<script type='text/javascript'>\nconsole.log(\"before\");\n</script>\n";
+		$expected .= "<script type='text/javascript' src='http://example.com'></script>\n";
+		$expected .= "<script type='text/javascript'>\nconsole.log(\"after\");\n</script>\n";
+		$expected .= "<![endif]-->\n";
+
+		wp_enqueue_script( 'test-example', 'example.com', array(), null );
+		wp_localize_script( 'test-example', 'testExample', array( 'foo' => 'bar' ) );
+		wp_add_inline_script( 'test-example', 'console.log("before");', 'before' );
+		wp_add_inline_script( 'test-example', 'console.log("after");' );
+		wp_script_add_data( 'test-example', 'conditional', 'gte IE 9' );
+
+		$this->assertEquals( $expected_localized, get_echo( 'wp_print_scripts' ) );
+		$this->assertEquals( $expected, $wp_scripts->print_html_before );
+		$this->assertEquals( '', $wp_scripts->print_html );
+	}
 
 }
