@@ -21,8 +21,7 @@ wp-tests-config.php
 /src/wp-content/blogs.dir
 /src/wp-content/languages
 /src/wp-content/mu-plugins
-/src/wp-content/plugins
-/src/wp-content/themes
+
 /src/wp-content/upgrade
 /src/wp-content/uploads
 /src/wp-content/advanced-cache.php
