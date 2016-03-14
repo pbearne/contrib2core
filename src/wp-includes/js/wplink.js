@@ -1,7 +1,7 @@
 
 var wpLink;
 
-( function( $, wpLinkL10n ) {
+( function( $, wpLinkL10n, wp ) {
 	var editor, correctedURL, linkNode,
 		inputs = {},
 		isTouch = ( 'ontouchend' in document );
@@ -35,7 +35,7 @@ var wpLink;
 				wpLink.update();
 			});
 
-			inputs.close.add( inputs.backdrop ).add( '#wp-link-cancel a' ).click( function( event ) {
+			inputs.close.add( inputs.backdrop ).add( '#wp-link-cancel button' ).click( function( event ) {
 				event.preventDefault();
 				wpLink.close();
 			});
@@ -76,6 +76,11 @@ var wpLink;
 				},
 				focus: function( event, ui ) {
 					$input.attr( 'aria-activedescendant', 'mce-wp-autocomplete-' + ui.item.ID );
+					/*
+					 * Don't empty the URL input field, when using the arrow keys to
+					 * highlight items. See api.jqueryui.com/autocomplete/#event-focus
+					 */
+					event.preventDefault();
 				},
 				select: function( event, ui ) {
 					$input.val( ui.item.permalink );
@@ -83,6 +88,9 @@ var wpLink;
 					if ( inputs.wrap.hasClass( 'has-text-field' ) && $.trim( inputs.text.val() ) === '' ) {
 						inputs.text.val( ui.item.title );
 					}
+
+					// Audible confirmation message when a link has been selected.
+					wp.a11y.speak( wpLinkL10n.linkSelected );
 
 					return false;
 				},
@@ -95,6 +103,18 @@ var wpLink;
 				minLength: 2,
 				position: {
 					my: 'left top+2'
+				},
+				messages: {
+					noResults: ( typeof window.uiAutocompleteL10n !== 'undefined' ) ? window.uiAutocompleteL10n.noResults : '',
+					results: function( number ) {
+						if ( typeof window.uiAutocompleteL10n !== 'undefined' ) {
+							if ( number > 1 ) {
+								return window.uiAutocompleteL10n.manyResults.replace( '%d', number );
+							}
+
+							return window.uiAutocompleteL10n.oneResult;
+						}
+					}
 				}
 			} ).autocomplete( 'instance' )._renderItem = function( ul, item ) {
 				return $( '<li role="option" id="mce-wp-autocomplete-' + item.ID + '">' )
@@ -104,15 +124,21 @@ var wpLink;
 
 			$input.attr( {
 				'aria-owns': $input.autocomplete( 'widget' ).attr( 'id' )
-			}  )
+			} )
 			.on( 'focus', function() {
-				$input.autocomplete( 'search' );
+				var inputValue = $input.val();
+				/*
+				 * Don't trigger a search if the URL field already has a link or is empty.
+				 * Also, avoids screen readers announce `No search results`.
+				 */
+				if ( inputValue && ! /^https?:/.test( inputValue ) ) {
+					$input.autocomplete( 'search' );
+				}
 			} )
 			.autocomplete( 'widget' )
 				.addClass( 'wplink-autocomplete' )
-				.attr( 'role', 'listbox' );
-
-
+				.attr( 'role', 'listbox' )
+				.removeAttr( 'tabindex' ); // Remove the `tabindex=0` attribute added by jQuery UI.
 		},
 
 		// If URL wasn't corrected last time and doesn't start with http:, https:, ? # or /, prepend http://
@@ -157,7 +183,7 @@ var wpLink;
 					editor = null;
 				}
 
-				if ( editor && window.tinymce.isIE && ! editor.windowManager.wplinkBookmark ) {
+				if ( editor && window.tinymce.isIE ) {
 					editor.windowManager.wplinkBookmark = editor.selection.getBookmark();
 				}
 			}
@@ -389,6 +415,9 @@ var wpLink;
 
 			wpLink.close();
 			textarea.focus();
+
+			// Audible confirmation message when a link has been inserted in the Editor.
+			wp.a11y.speak( wpLinkL10n.linkInserted );
 		},
 
 		mceUpdate: function() {
@@ -423,6 +452,8 @@ var wpLink;
 					}
 				}
 
+				// Not editing any more
+				attrs['data-wplink-edit'] = null;
 				editor.dom.setAttribs( link, attrs );
 			} else {
 				if ( text ) {
@@ -435,6 +466,9 @@ var wpLink;
 			wpLink.close( 'noReset' );
 			editor.focus();
 			editor.nodeChanged();
+
+			// Audible confirmation message when a link has been inserted in the Editor.
+			wp.a11y.speak( wpLinkL10n.linkInserted );
 		},
 
 		keydown: function( event ) {
@@ -496,4 +530,4 @@ var wpLink;
 	};
 
 	$( document ).ready( wpLink.init );
-})( jQuery, window.wpLinkL10n );
+})( jQuery, window.wpLinkL10n, window.wp );

@@ -224,59 +224,17 @@
 		});
 
 		/**
-		 * Site Logo
+		 * Custom Logo
 		 *
-		 * The site logo setting only contains the attachment ID. To avoid having to send an AJAX request to get more
-		 * data, we send a separate message with the attachment data we get from the Customizer's media modal.
-		 * Therefore first callback handles only the event of a new logo being selected.
-		 *
-		 * We don't need any information about a removed logo, so the second callback only handles that.
+		 * Toggle the wp-custom-logo body class when a logo is added or removed.
 		 *
 		 * @since 4.5.0
 		 */
-		api.preview.bind( 'site-logo-attachment-data', function( attachment ) {
-			var $logo  = $( '.site-logo' ),
-				size   = $logo.data( 'size' ),
-				srcset = [];
-
-			// If the source was smaller than the size required by the theme, give the biggest we've got.
-			if ( ! attachment.sizes[ size ] ) {
-				size = 'full';
-			}
-
-			_.each( attachment.sizes, function( size ) {
-				srcset.push( size.url + ' ' + size.width + 'w' );
+		api( 'custom_logo', function( setting ) {
+			$( 'body' ).toggleClass( 'wp-custom-logo', !! setting.get() );
+			setting.bind( function( attachmentId ) {
+				$( 'body' ).toggleClass( 'wp-custom-logo', !! attachmentId );
 			} );
-
-			$logo.attr( {
-				height: attachment.sizes[ size ].height,
-				width:  attachment.sizes[ size ].width,
-				src:    attachment.sizes[ size ].url,
-				srcset: srcset
-			} );
-
-			$( '.site-logo-link' ).show();
-			$( 'body' ).addClass( 'wp-site-logo' );
-		} );
-
-		api( 'site_logo', function( setting ) {
-			setting.bind( function( newValue ) {
-				if ( ! newValue ) {
-					$( '.site-logo-link' ).hide();
-					$( 'body' ).removeClass( 'wp-site-logo' );
-				}
-			} );
-
-			// Focus on the control when the logo is clicked, if there is no site_logo partial.
-			if ( ! api.selectiveRefresh || ! api.selectiveRefresh.partial.has( 'site_logo' ) ) {
-				$( document.body ).on( 'click', '.site-logo-link', function( e ) {
-					if ( ! e.shiftKey ) {
-						return;
-					}
-					api.preview.send( 'focus-control-for-setting', 'site_logo' );
-				} );
-				$( '.site-logo-link' ).attr( 'title', api.settings.l10n.shiftClickToEdit );
-			}
 		} );
 
 		api.trigger( 'preview-ready' );

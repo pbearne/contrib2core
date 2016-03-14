@@ -43,7 +43,7 @@ class WP_oEmbed {
 			'#https://youtu\.be/.*#i'                             => array( 'http://www.youtube.com/oembed?scheme=https',                true  ),
 			'#https?://(.+\.)?vimeo\.com/.*#i'                    => array( 'http://vimeo.com/api/oembed.{format}',                      true  ),
 			'#https?://(www\.)?dailymotion\.com/.*#i'             => array( 'https://www.dailymotion.com/services/oembed',               true  ),
-			'http://dai.ly/*'                                     => array( 'https://www.dailymotion.com/services/oembed',               false ),
+			'#https?://dai.ly/.*#i'                               => array( 'https://www.dailymotion.com/services/oembed',               true  ),
 			'#https?://(www\.)?flickr\.com/.*#i'                  => array( 'https://www.flickr.com/services/oembed/',                   true  ),
 			'#https?://flic\.kr/.*#i'                             => array( 'https://www.flickr.com/services/oembed/',                   true  ),
 			'#https?://(.+\.)?smugmug\.com/.*#i'                  => array( 'http://api.smugmug.com/services/oembed/',                   true  ),
@@ -55,7 +55,9 @@ class WP_oEmbed {
 			'#https?://(.+\.)?polldaddy\.com/.*#i'                => array( 'https://polldaddy.com/oembed/',                             true  ),
 			'#https?://poll\.fm/.*#i'                             => array( 'https://polldaddy.com/oembed/',                             true  ),
 			'#https?://(www\.)?funnyordie\.com/videos/.*#i'       => array( 'http://www.funnyordie.com/oembed',                          true  ),
-			'#https?://(www\.)?twitter\.com/.+?/status(es)?/.*#i' => array( 'https://api.twitter.com/1/statuses/oembed.{format}',        true  ),
+			'#https?://(www\.)?twitter\.com/.+?/status(es)?/.*#i' => array( 'https://publish.twitter.com/oembed',                        true  ),
+			'#https?://(www\.)?twitter\.com/.+?/timelines/.*#i'   => array( 'https://publish.twitter.com/oembed',                        true  ),
+			'#https?://(www\.)?twitter\.com/i/moments/.*#i'       => array( 'https://publish.twitter.com/oembed',                        true  ),
 			'#https?://vine.co/v/.*#i'                            => array( 'https://vine.co/oembed.{format}',                           true  ),
 			'#https?://(www\.)?soundcloud\.com/.*#i'              => array( 'http://soundcloud.com/oembed',                              true  ),
 			'#https?://(.+?\.)?slideshare\.net/.*#i'              => array( 'https://www.slideshare.net/api/oembed/2',                   true  ),
@@ -120,7 +122,7 @@ class WP_oEmbed {
 		 * | Instagram    | instagr.am           |  Yes  | 3.5.0     |
 		 * | Slideshare   | slideshare.net       |  Yes  | 3.5.0     |
 		 * | SoundCloud   | soundcloud.com       |  Yes  | 3.5.0     |
-		 * | Dailymotion  | dai.ly               |  No   | 3.6.0     |
+		 * | Dailymotion  | dai.ly               |  Yes  | 3.6.0     |
 		 * | Flickr       | flic.kr              |  Yes  | 3.6.0     |
 		 * | Spotify      | spotify.com          |  Yes  | 3.6.0     |
 		 * | Imgur        | imgur.com            |  Yes  | 3.9.0     |
@@ -309,6 +311,9 @@ class WP_oEmbed {
 	 */
 	public function discover( $url ) {
 		$providers = array();
+		$args = array(
+			'limit_response_size' => 153600, // 150 KB
+		);
 
 		/**
 		 * Filter oEmbed remote get arguments.
@@ -320,7 +325,7 @@ class WP_oEmbed {
 		 * @param array  $args oEmbed remote get arguments.
 		 * @param string $url  URL to be inspected.
 		 */
-		$args = apply_filters( 'oembed_remote_get_args', array(), $url );
+		$args = apply_filters( 'oembed_remote_get_args', $args, $url );
 
 		// Fetch URL content
 		$request = wp_safe_remote_get( $url, $args );
@@ -342,7 +347,9 @@ class WP_oEmbed {
 			) );
 
 			// Strip <body>
-			$html = substr( $html, 0, stripos( $html, '</head>' ) );
+			if ( $html_head_end = stripos( $html, '</head>' ) ) {
+				$html = substr( $html, 0, $html_head_end );
+			}
 
 			// Do a quick check
 			$tagfound = false;

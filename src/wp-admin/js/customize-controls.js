@@ -685,7 +685,7 @@
 						// Fix the height after browser resize.
 						$( window ).on( 'resize.customizer-section', _.debounce( resizeContentHeight, 100 ) );
 
-						section._recalculateTopMargin();
+						setTimeout( _.bind( section._recalculateTopMargin, section ), 0 );
 					};
 				}
 
@@ -1790,8 +1790,16 @@
 					control.pausePlayer();
 				});
 
-			// Re-render whenever the control's setting changes.
-			control.setting.bind( function () { control.renderContent(); } );
+			control.setting.bind( function( value ) {
+
+				// Send attachment information to the preview for possible use in `postMessage` transport.
+				wp.media.attachment( value ).fetch().done( function() {
+					wp.customize.previewer.send( control.setting.id + '-attachment-data', this.attributes );
+				} );
+
+				// Re-render whenever the control's setting changes.
+				control.renderContent();
+			} );
 		},
 
 		pausePlayer: function () {
@@ -2303,43 +2311,6 @@
 	});
 
 	/**
-	 * A control for selecting Site Logos.
-	 *
-	 * @class
-	 * @augments wp.customize.MediaControl
-	 * @augments wp.customize.Control
-	 * @augments wp.customize.Class
-	 */
-	api.SiteLogoControl = api.MediaControl.extend({
-
-		/**
-		 * When the control's DOM structure is ready,
-		 * set up internal event bindings.
-		 */
-		ready: function() {
-			var control = this;
-
-			// Shortcut so that we don't have to use _.bind every time we add a callback.
-			_.bindAll( control, 'restoreDefault', 'removeFile', 'openFrame', 'select' );
-
-			// Bind events, with delegation to facilitate re-rendering.
-			control.container.on( 'click keydown', '.upload-button', control.openFrame );
-			control.container.on( 'click keydown', '.thumbnail-image img', control.openFrame );
-			control.container.on( 'click keydown', '.default-button', control.restoreDefault );
-			control.container.on( 'click keydown', '.remove-button', control.removeFile );
-
-			control.setting.bind( function( attachmentId ) {
-				wp.media.attachment( attachmentId ).fetch().done( function() {
-					wp.customize.previewer.send( 'site-logo-attachment-data', this.attributes );
-				} );
-
-				// Re-render whenever the control's setting changes.
-				control.renderContent();
-			} );
-		}
-	});
-
-	/**
 	 * @class
 	 * @augments wp.customize.Control
 	 * @augments wp.customize.Class
@@ -2375,6 +2346,10 @@
 				api.HeaderTool.UploadsList,
 				api.HeaderTool.DefaultsList
 			]);
+
+			// Ensure custom-header-crop Ajax requests bootstrap the Customizer to activate the previewed theme.
+			wp.media.controller.Cropper.prototype.defaults.doCropArgs.wp_customize = 'on';
+			wp.media.controller.Cropper.prototype.defaults.doCropArgs.theme = api.settings.theme.stylesheet;
 		},
 
 		/**
@@ -3245,7 +3220,6 @@
 		image:         api.ImageControl,
 		cropped_image: api.CroppedImageControl,
 		site_icon:     api.SiteIconControl,
-		site_logo:     api.SiteLogoControl,
 		header:        api.HeaderControl,
 		background:    api.BackgroundControl,
 		theme:         api.ThemeControl
@@ -3468,18 +3442,25 @@
 		});
 
 		// Focus the autofocused element
-		_.each( [ 'panel', 'section', 'control' ], function ( type ) {
-			var instance, id = api.settings.autofocus[ type ];
-			if ( id && api[ type ]( id ) ) {
-				instance = api[ type ]( id );
-				// Wait until the element is embedded in the DOM
-				instance.deferred.embedded.done( function () {
-					// Wait until the preview has activated and so active panels, sections, controls have been set
-					api.previewer.deferred.active.done( function () {
+		_.each( [ 'panel', 'section', 'control' ], function( type ) {
+			var id = api.settings.autofocus[ type ];
+			if ( ! id ) {
+				return;
+			}
+
+			/*
+			 * Defer focus until:
+			 * 1. The panel, section, or control exists (especially for dynamically-created ones).
+			 * 2. The instance is embedded in the document (and so is focusable).
+			 * 3. The preview has finished loading so that the active states have been set.
+			 */
+			api[ type ]( id, function( instance ) {
+				instance.deferred.embedded.done( function() {
+					api.previewer.deferred.active.done( function() {
 						instance.focus();
 					});
 				});
-			}
+			});
 		});
 
 		/**

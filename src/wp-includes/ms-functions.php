@@ -37,7 +37,7 @@ function get_sitestats() {
  * @global wpdb $wpdb WordPress database abstraction object.
  *
  * @param int $user_id The unique ID of the user
- * @return object|void The blog object
+ * @return WP_Site|void The blog object
  */
 function get_active_blog_for_user( $user_id ) {
 	global $wpdb;
@@ -1539,13 +1539,13 @@ function wpmu_welcome_user_notification( $user_id, $password, $meta = array() ) 
 	$user = get_userdata( $user_id );
 
 	/**
-	 * Filter the content of the welcome email after user activation.
+	 * Filters the content of the welcome email after user activation.
 	 *
 	 * Content should be formatted for transmission via wp_mail().
 	 *
 	 * @since MU
 	 *
-	 * @param type   $welcome_email The message body of the account activation success email.
+	 * @param string $welcome_email The message body of the account activation success email.
 	 * @param int    $user_id       User ID.
 	 * @param string $password      User password.
 	 * @param array  $meta          Signup meta data.
@@ -1590,9 +1590,9 @@ function wpmu_welcome_user_notification( $user_id, $password, $meta = array() ) 
  *
  * @since MU
  *
- * @global object $current_site
+ * @global WP_Network $current_site
  *
- * @return object
+ * @return WP_Network
  */
 function get_current_site() {
 	global $current_site;

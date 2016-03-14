@@ -219,9 +219,9 @@ function number_format_i18n( $number, $decimals = 0 ) {
 	global $wp_locale;
 
 	if ( isset( $wp_locale ) ) {
-		$formatted = number_format( (int) $number, absint( $decimals ), $wp_locale->number_format['decimal_point'], $wp_locale->number_format['thousands_sep'] );
+		$formatted = number_format( (float) $number, absint( $decimals ), $wp_locale->number_format['decimal_point'], $wp_locale->number_format['thousands_sep'] );
 	} else {
-		$formatted = number_format( (int) $number, absint( $decimals ) );
+		$formatted = number_format( (float) $number, absint( $decimals ) );
 	}
 
 	/**
@@ -277,31 +277,33 @@ function size_format( $bytes, $decimals = 0 ) {
  *
  * @since 0.71
  *
- * @param string     $mysqlstring   Date or datetime field type from MySQL.
+ * @param string     $date_string   in the format '%Y-%m-%d'.
  * @param int|string $start_of_week Optional. Start of the week as an integer. Default empty string.
  * @return array Keys are 'start' and 'end'.
  */
-function get_weekstartend( $mysqlstring, $start_of_week = '' ) {
-	// MySQL string year.
-	$my = substr( $mysqlstring, 0, 4 );
+function get_weekstartend( $date_string, $start_of_week = '' ) {
+	// Date string year.
+	$my = substr( $date_string, 0, 4 );
 
-	// MySQL string month.
-	$mm = substr( $mysqlstring, 8, 2 );
+	// Date string month.
+	$mm = substr( $date_string, 8, 2 );
 
-	// MySQL string day.
-	$md = substr( $mysqlstring, 5, 2 );
-
-	// The timestamp for MySQL string day.
+	// Date string day.
+	$md = substr( $date_string, 5, 2 );
+	var_dump('md:' . $md);
+	// The timestamp for Date string.
 	$day = mktime( 0, 0, 0, $md, $mm, $my );
 
 	// The day of the week from the timestamp.
 	$weekday = date( 'w', $day );
-
-	if ( !is_numeric($start_of_week) )
+var_dump('w' . $weekday);
+	if ( ! is_numeric($start_of_week) ){
 		$start_of_week = get_option( 'start_of_week' );
+	}
 
-	if ( $weekday < $start_of_week )
+	if ( $weekday < $start_of_week ){
 		$weekday += 7;
+	}
 
 	// The most recent week start day on or before $day.
 	$start = $day - DAY_IN_SECONDS * ( $weekday - $start_of_week );
@@ -1687,17 +1689,19 @@ function path_join( $base, $path ) {
  *
  * On windows systems, replaces backslashes with forward slashes
  * and forces upper-case drive letters.
- * Ensures that no duplicate slashes exist.
+ * Allows for two leading slashes for Windows network shares, but
+ * ensures that all other duplicate slashes are reduced to a single.
  *
  * @since 3.9.0
  * @since 4.4.0 Ensures upper-case drive letters on Windows systems.
+ * @since 4.5.0 Allows for Windows network shares.
  *
  * @param string $path Path to normalize.
  * @return string Normalized path.
  */
 function wp_normalize_path( $path ) {
 	$path = str_replace( '\\', '/', $path );
-	$path = preg_replace( '|/+|','/', $path );
+	$path = preg_replace( '|(?<=.)/+|', '/', $path );
 	if ( ':' === substr( $path, 1, 1 ) ) {
 		$path = ucfirst( $path );
 	}
@@ -1800,12 +1804,15 @@ function win_is_writable( $path ) {
 }
 
 /**
- * Get uploads directory information.
+ * Retrieves uploads directory information.
  *
  * Same as wp_upload_dir() but "light weight" as it doesn't attempt to create the uploads directory.
- * Intended for use in themes, when only 'basedir' and 'baseurl' are needed, generally in all cases when not uploading files.
+ * Intended for use in themes, when only 'basedir' and 'baseurl' are needed, generally in all cases
+ * when not uploading files.
  *
  * @since 4.5.0
+ *
+ * @see wp_upload_dir()
  *
  * @return array See wp_upload_dir() for description.
  */

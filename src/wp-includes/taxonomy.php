@@ -491,7 +491,7 @@ function register_taxonomy( $taxonomy, $object_type, $args = array() ) {
 }
 
 /**
- * Unregister a taxonomy.
+ * Unregisters a taxonomy.
  *
  * Can not be used to unregister built-in taxonomies.
  *
@@ -501,7 +501,7 @@ function register_taxonomy( $taxonomy, $object_type, $args = array() ) {
  * @global array $wp_taxonomies List of taxonomies.
  *
  * @param string $taxonomy Taxonomy name.
- * @return bool|WP_Error True on success, WP_Error on failure.
+ * @return bool|WP_Error True on success, WP_Error on failure or if the taxonomy doesn't exist.
  */
 function unregister_taxonomy( $taxonomy ) {
 	if ( ! taxonomy_exists( $taxonomy ) ) {
@@ -2395,7 +2395,7 @@ function wp_delete_term( $term, $taxonomy, $args = array() ) {
 	 * Fires after a term is deleted from the database and the cache is cleaned.
 	 *
 	 * @since 2.5.0
-	 * @since 4.5.0 Introduced `$object_ids` argument.
+	 * @since 4.5.0 Introduced the `$object_ids` argument.
 	 *
 	 * @param int     $term         Term ID.
 	 * @param int     $tt_id        Term taxonomy ID.
@@ -2413,7 +2413,7 @@ function wp_delete_term( $term, $taxonomy, $args = array() ) {
 	 * taxonomy the term belonged to.
 	 *
 	 * @since 2.3.0
-	 * @since 4.5.0 Introduced `$object_ids` argument.
+	 * @since 4.5.0 Introduced the `$object_ids` argument.
 	 *
 	 * @param int     $term         Term ID.
 	 * @param int     $tt_id        Term taxonomy ID.
@@ -2973,7 +2973,7 @@ function wp_insert_term( $term, $taxonomy, $args = array() ) {
  *                                    Will replace all existing related terms in this taxonomy.
  * @param string           $taxonomy  The context in which to relate the term to the object.
  * @param bool             $append    Optional. If false will delete difference of terms. Default false.
- * @return array|WP_Error Affected Term IDs.
+ * @return array|WP_Error Term taxonomy IDs of the affected terms.
  */
 function wp_set_object_terms( $object_id, $terms, $taxonomy, $append = false ) {
 	global $wpdb;
@@ -3094,7 +3094,7 @@ function wp_set_object_terms( $object_id, $terms, $taxonomy, $append = false ) {
  * @param int              $object_id The ID of the object to which the terms will be added.
  * @param array|int|string $terms     The slug(s) or ID(s) of the term(s) to add.
  * @param array|string     $taxonomy  Taxonomy name.
- * @return array|WP_Error Affected Term IDs
+ * @return array|WP_Error Term taxonomy IDs of the affected terms.
  */
 function wp_add_object_terms( $object_id, $terms, $taxonomy ) {
 	return wp_set_object_terms( $object_id, $terms, $taxonomy, true );
@@ -3743,7 +3743,7 @@ function clean_term_cache($ids, $taxonomy = '', $clean_taxonomy = true) {
 		 * Fires once after each taxonomy's term cache has been cleaned.
 		 *
 		 * @since 2.5.0
-		 * @since 4.5.0 Added $clean_taxonomy param.
+		 * @since 4.5.0 Added the `$clean_taxonomy` parameter.
 		 *
 		 * @param array  $ids            An array of term IDs.
 		 * @param string $taxonomy       Taxonomy slug.

@@ -93,6 +93,7 @@ class WP_Scripts extends WP_Dependencies {
 	public $print_html = '';
 
 	/**
+	 * HTML to print before the script handle.
 	 *
 	 * @since 4.5.0
 	 * @access public
@@ -509,7 +510,7 @@ class WP_Scripts extends WP_Dependencies {
 	 * @return bool True on success, false on failure.
 	 */
 	public function all_deps( $handles, $recursion = false, $group = false ) {
-		$r = parent::all_deps( $handles, $recursion );
+		$r = parent::all_deps( $handles, $recursion, $group );
 		if ( ! $recursion ) {
 			/**
 			 * Filter the list of script dependencies left to print.

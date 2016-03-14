@@ -426,7 +426,7 @@ class WP_Posts_List_Table extends WP_List_Table {
 
 			if ( is_object_in_taxonomy( $this->screen->post_type, 'category' ) ) {
 				$dropdown_options = array(
-					'show_option_all' => __( 'All categories' ),
+					'show_option_all' => get_taxonomy( 'category' )->labels->all_items,
 					'hide_empty' => 0,
 					'hierarchical' => 1,
 					'show_count' => 0,
@@ -1225,8 +1225,7 @@ class WP_Posts_List_Table extends WP_List_Table {
 		if ( is_post_type_viewable( $post_type_object ) ) {
 			if ( in_array( $post->post_status, array( 'pending', 'draft', 'future' ) ) ) {
 				if ( $can_edit_post ) {
-					$unpublished_link = set_url_scheme( get_permalink( $post ) );
-					$preview_link = get_preview_post_link( $post, array(), $unpublished_link );
+					$preview_link = get_preview_post_link( $post );
 					$actions['view'] = sprintf(
 						'<a href="%s" rel="permalink" aria-label="%s">%s</a>',
 						esc_url( $preview_link ),

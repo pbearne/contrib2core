@@ -354,7 +354,7 @@ function the_excerpt() {
 }
 
 /**
- * Retrieve the post excerpt.
+ * Retrieves the post excerpt.
  *
  * @since 0.71
  * @since 4.5.0 Introduced the `$post` parameter.
@@ -706,8 +706,8 @@ function get_body_class( $class = '' ) {
 	if ( get_background_color() !== get_theme_support( 'custom-background', 'default-color' ) || get_background_image() )
 		$classes[] = 'custom-background';
 
-	if ( has_site_logo() ) {
-		$classes[] = 'wp-site-logo';
+	if ( has_custom_logo() ) {
+		$classes[] = 'wp-custom-logo';
 	}
 
 	$page = $wp_query->get( 'page' );

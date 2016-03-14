@@ -11,11 +11,20 @@ class Tests_General_Template extends WP_UnitTestCase {
 	public $site_icon_id;
 	public $site_icon_url;
 
+	public $custom_logo_id;
+	public $custom_logo_url;
+
 	function setUp() {
 		parent::setUp();
 
 		require_once ABSPATH . 'wp-admin/includes/class-wp-site-icon.php';
 		$this->wp_site_icon = $GLOBALS['wp_site_icon'];
+	}
+
+	function tearDown() {
+		$this->_remove_custom_logo();
+
+		parent::tearDown();
 	}
 
 	/**
@@ -191,5 +200,155 @@ class Tests_General_Template extends WP_UnitTestCase {
 		// Save the data
 		$this->site_icon_id = $this->_make_attachment( $upload );
 		return $this->site_icon_id;
+	}
+
+	/**
+	 * @group custom_logo
+	 *
+	 * @since 4.5.0
+	 */
+	function test_has_custom_logo() {
+		$this->assertFalse( has_custom_logo() );
+
+		$this->_set_custom_logo();
+		$this->assertTrue( has_custom_logo() );
+
+		$this->_remove_custom_logo();
+		$this->assertFalse( has_custom_logo() );
+	}
+
+	/**
+	 * @group custom_logo
+	 * @group multisite
+	 */
+	function test_has_custom_logo_returns_true_when_called_for_other_site_with_custom_logo_set() {
+		if ( ! is_multisite() ) {
+			$this->markTestSkipped( 'This test requires multisite.' );
+		}
+
+		$blog_id = $this->factory->blog->create();
+		switch_to_blog( $blog_id );
+		$this->_set_custom_logo();
+		restore_current_blog();
+
+		$this->assertTrue( has_custom_logo( $blog_id ) );
+	}
+
+	/**
+	 * @group custom_logo
+	 * @group multisite
+	 */
+	function test_has_custom_logo_returns_false_when_called_for_other_site_without_custom_logo_set() {
+		if ( ! is_multisite() ) {
+			$this->markTestSkipped( 'This test requires multisite.' );
+		}
+
+		$blog_id = $this->factory->blog->create();
+
+		$this->assertFalse( has_custom_logo( $blog_id ) );
+	}
+
+	/**
+	 * @group custom_logo
+	 *
+	 * @since 4.5.0
+	 */
+	function test_get_custom_logo() {
+		$this->assertEmpty( get_custom_logo() );
+
+		$this->_set_custom_logo();
+		$custom_logo = get_custom_logo();
+		$this->assertNotEmpty( $custom_logo );
+		$this->assertInternalType( 'string', $custom_logo );
+
+		$this->_remove_custom_logo();
+		$this->assertEmpty( get_custom_logo() );
+	}
+
+	/**
+	 * @group custom_logo
+	 * @group multisite
+	 */
+	function test_get_custom_logo_returns_logo_when_called_for_other_site_with_custom_logo_set() {
+		if ( ! is_multisite() ) {
+			$this->markTestSkipped( 'This test requires multisite.' );
+		}
+
+		$blog_id = $this->factory->blog->create();
+		switch_to_blog( $blog_id );
+
+		$this->_set_custom_logo();
+		$home_url = get_home_url( $blog_id, '/' );
+		$size     = get_theme_support( 'custom-logo', 'size' );
+		$size     = $size ? $size : 'full';
+		$image    = wp_get_attachment_image( $this->custom_logo_id, $size, false, array(
+			'class'     => "custom-logo attachment-$size",
+			'data-size' => $size,
+			'itemprop'  => 'logo',
+		) );
+		restore_current_blog();
+
+		$expected_custom_logo =  '<a href="' . $home_url . '" class="custom-logo-link" rel="home" itemprop="url">' . $image . '</a>';
+		$this->assertEquals( $expected_custom_logo, get_custom_logo( $blog_id ) );
+	}
+
+	/**
+	 * @group custom_logo
+	 *
+	 * @since 4.5.0
+	 */
+	function test_the_custom_logo() {
+		$this->expectOutputString( '' );
+		the_custom_logo();
+
+		$this->_set_custom_logo();
+		$size  = get_theme_support( 'custom-logo', 'size' );
+		$size  = $size ? $size : 'full';
+		$image = wp_get_attachment_image( $this->custom_logo_id, $size, false, array(
+			'class'     => "custom-logo attachment-$size",
+			'data-size' => $size,
+			'itemprop'  => 'logo',
+		) );
+
+		$this->expectOutputString( '<a href="http://' . WP_TESTS_DOMAIN . '/" class="custom-logo-link" rel="home" itemprop="url">' . $image . '</a>' );
+		the_custom_logo();
+	}
+
+	/**
+	 * Sets a site icon in options for testing.
+	 *
+	 * @since 4.5.0
+	 */
+	function _set_custom_logo() {
+		if ( ! $this->custom_logo_id ) {
+			$this->_insert_custom_logo();
+		}
+
+		set_theme_mod( 'custom_logo', $this->custom_logo_id );
+	}
+
+	/**
+	 * Removes the site icon from options.
+	 *
+	 * @since 4.5.0
+	 */
+	function _remove_custom_logo() {
+		remove_theme_mod( 'custom_logo' );
+	}
+
+	/**
+	 * Inserts an attachment for testing custom logos.
+	 *
+	 * @since 4.5.0
+	 */
+	function _insert_custom_logo() {
+		$filename = DIR_TESTDATA . '/images/test-image.jpg';
+		$contents = file_get_contents( $filename );
+		$upload   = wp_upload_bits( basename( $filename ), null, $contents );
+
+		// Save the data.
+		$this->custom_logo_url = $upload['url'];
+		$this->custom_logo_id  = $this->_make_attachment( $upload );
+		return $this->custom_logo_id;
 	}
 }
