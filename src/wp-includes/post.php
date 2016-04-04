@@ -3353,6 +3353,14 @@ function wp_insert_post( $postarr, $wp_error = false ) {
 				$data['ID'] = $import_id;
 			}
 		}
+		/**
+		 * Fires immediately before an existing post is updated in the database.
+		 *
+		 * @since 4.6.0
+		 *
+		 * @param array $data    Array of unslashed post data.
+		 */
+		do_action( 'pre_post_insert', $data );
 		if ( false === $wpdb->insert( $wpdb->posts, $data ) ) {
 			if ( $wp_error ) {
 				return new WP_Error('db_insert_error', __('Could not insert post into the database'), $wpdb->last_error);

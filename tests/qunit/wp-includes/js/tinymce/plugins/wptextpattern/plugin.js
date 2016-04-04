@@ -15,7 +15,7 @@
 				'd': 68, 'e': 69, 'f': 70, 'g': 71, 'h': 72, 'i': 73, 'j': 74, 'k': 75, 'l': 76, 'm': 77, 'n': 78, 'o': 79, 'p': 80, 'q': 81,
 				'r': 82, 's': 83, 't': 84, 'u': 85,	'v': 86, 'w': 87, 'x': 88, 'y': 89, ' ': 32, ',': 188, '-': 189, '.': 190, '/': 191, '\\': 220,
 				'[': 219, ']': 221, '\'': 222, ';': 186, '=': 187, ')': 41,
-				'*': 48 // Anything will do.
+				'`': 48 // Anything will do.
 			};
 
 			return lookup[String.fromCharCode(charCode)];
@@ -279,16 +279,15 @@
 		}, assert.async() );
 	} );
 
-	QUnit.test( 'Inline: single.', function( assert ) {
-		type( '*test*', function() {
-			assert.equal( editor.getContent(), '<p><em>test</em></p>' );
-			assert.equal( editor.selection.getRng().startOffset, 1 );
+	QUnit.test( 'Horizontal Rule', function( assert ) {
+		type( '---\n', function() {
+			assert.equal( editor.getContent(), '<hr />\n<p>&nbsp;</p>' );
 		}, assert.async() );
 	} );
 
-	QUnit.test( 'Inline: double.', function( assert ) {
-		type( '**test**', function() {
-			assert.equal( editor.getContent(), '<p><strong>test</strong></p>' );
+	QUnit.test( 'Inline: single.', function( assert ) {
+		type( '`test`', function() {
+			assert.equal( editor.getContent(), '<p><code>test</code></p>' );
 			assert.equal( editor.selection.getRng().startOffset, 1 );
 		}, assert.async() );
 	} );
@@ -297,23 +296,17 @@
 		editor.setContent( '<p>test test test</p>' );
 		editor.selection.setCursorLocation( editor.$( 'p' )[0].firstChild, 5 );
 
-		type( '**', function() {
+		type( '`', function() {
 			editor.selection.setCursorLocation( editor.$( 'p' )[0].firstChild, 11 );
-		}, '**', function() {
-			assert.equal( editor.getContent(), '<p>test <strong>test</strong> test</p>' );
+		}, '`', function() {
+			assert.equal( editor.getContent(), '<p>test <code>test</code> test</p>' );
 			assert.equal( editor.selection.getRng().startOffset, 1 );
 		}, assert.async() );
 	} );
 
 	QUnit.test( 'Inline: no change.', function( assert ) {
-		type( 'test ******', function() {
-			assert.equal( editor.getContent(), '<p>test ******</p>' );
-		}, assert.async() );
-	} );
-
-	QUnit.test( 'Horizontal Rule', function( assert ) {
-		type( '   ---   \n', function() {
-			assert.equal( editor.getContent(), '<hr />\n<p>&nbsp;</p>' );
+		type( 'test `````', function() {
+			assert.equal( editor.getContent(), '<p>test `````</p>' );
 		}, assert.async() );
 	} );
 } )( window.jQuery, window.QUnit, window.tinymce, window.setTimeout );

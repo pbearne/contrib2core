@@ -6,7 +6,7 @@
  *
  * @group functions
  */
-class Tests_Functions_number_format_i18n extends WP_UnitTestCase {
+class Tests_Functions_number_format_i18n_old extends WP_UnitTestCase {
 
 	/**
 	 *

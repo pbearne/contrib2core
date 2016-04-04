@@ -108,8 +108,11 @@ function twentyfifteen_setup() {
 	 *
 	 * @since Twenty Fifteen 1.5
 	 */
-	add_image_size( 'twentyfifteen-logo', 248, 248 );
-	add_theme_support( 'custom-logo', array( 'size' => 'twentyfifteen-logo' ) );
+	add_theme_support( 'custom-logo', array(
+		'height'      => 248,
+		'width'       => 248,
+		'flex-height' => true,
+	) );
 
 	$color_scheme  = twentyfifteen_get_color_scheme();
 	$default_color = trim( $color_scheme[0], '#' );
@@ -125,6 +128,9 @@ function twentyfifteen_setup() {
 	 * specifically font, colors, icons, and column width.
 	 */
 	add_editor_style( array( 'css/editor-style.css', 'genericons/genericons.css', twentyfifteen_fonts_url() ) );
+
+	// Indicate widget sidebars can use selective refresh in the Customizer.
+	add_theme_support( 'customize-selective-refresh-widgets' );
 }
 endif; // twentyfifteen_setup
 add_action( 'after_setup_theme', 'twentyfifteen_setup' );

@@ -290,13 +290,13 @@ function get_weekstartend( $date_string, $start_of_week = '' ) {
 
 	// Date string day.
 	$md = substr( $date_string, 5, 2 );
-	var_dump('md:' . $md);
+
 	// The timestamp for Date string.
 	$day = mktime( 0, 0, 0, $md, $mm, $my );
 
 	// The day of the week from the timestamp.
 	$weekday = date( 'w', $day );
-var_dump('w' . $weekday);
+
 	if ( ! is_numeric($start_of_week) ){
 		$start_of_week = get_option( 'start_of_week' );
 	}
