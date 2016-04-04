@@ -1,0 +1,27 @@
+Index: src/wp-includes/general-template.php
+===================================================================
+--- src/wp-includes/general-template.php	(revision 36991)
++++ src/wp-includes/general-template.php	(working copy)
+@@ -1679,22 +1679,9 @@
+ 	// this is what will separate dates on weekly archive links
+ 	$archive_week_separator = '&#8211;';
+ 
+-	// over-ride general date format ? 0 = no: use the date format set in Options, 1 = yes: over-ride
+-	$archive_date_format_over_ride = 0;
+-
+ 	// options for daily archive (only if you over-ride the general date format)
+ 	$archive_day_date_format = 'Y/m/d';
+ 
+-	// options for weekly archive (only if you over-ride the general date format)
+-	$archive_week_start_date_format = 'Y/m/d';
+-	$archive_week_end_date_format	= 'Y/m/d';
+-
+-	if ( ! $archive_date_format_over_ride ) {
+-		$archive_day_date_format = get_option( 'date_format' );
+-		$archive_week_start_date_format = get_option( 'date_format' );
+-		$archive_week_end_date_format = get_option( 'date_format' );
+-	}
+-
+ 	$sql_where = $wpdb->prepare( "WHERE post_type = %s AND post_status = 'publish'", $r['post_type'] );
+ 
+ 	/**

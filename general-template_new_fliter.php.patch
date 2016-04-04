@@ -1,0 +1,21 @@
+Index: src/wp-includes/general-template.php
+===================================================================
+--- src/wp-includes/general-template.php	(revision 36991)
++++ src/wp-includes/general-template.php	(working copy)
+@@ -1676,8 +1676,14 @@
+ 		$order = 'DESC';
+ 	}
+ 
+-	// this is what will separate dates on weekly archive links
+-	$archive_week_separator = '&#8211;';
++	/**
++	 * Filter what will separate dates on weekly archive links.
++	 *
++	 * @since 4.5
++	 *
++	 * @param string '-' (&#8211;) used to split the atart and end for the week.
++	 */
++	$archive_week_separator =  apply_filters( 'getarchives_week_separator', '&#8211;' );
+ 
+ 	// over-ride general date format ? 0 = no: use the date format set in Options, 1 = yes: over-ride
+ 	$archive_date_format_over_ride = 0;

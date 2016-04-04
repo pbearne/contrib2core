@@ -1,0 +1,13 @@
+Index: wp-login.php
+===================================================================
+--- wp-login.php	(revision 36991)
++++ wp-login.php	(working copy)
+@@ -114,7 +114,7 @@
+ 	 */
+ 	$login_header_url = apply_filters( 'login_headerurl', $login_header_url );
+ 	/**
+-	 * Filter the title attribute of the header logo above login form.
++	 * Filter the attribute of the header logo above login form.
+ 	 *
+ 	 * @since 2.1.0
+ 	 *
