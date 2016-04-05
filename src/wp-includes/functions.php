@@ -322,8 +322,11 @@ function get_weekstartend( $date_string, $start_of_week = '' ) {
  * @return mixed Unserialized data can be any type.
  */
 function maybe_unserialize( $original ) {
-	if ( is_serialized( $original ) ) // don't attempt to unserialize data that wasn't serialized going in
-		return @unserialize( $original );
+	if ( is_serialized( $original ) ) { // don't attempt to unserialize data that wasn't serialized going in
+
+		return @unserialize( trim( $original ) );
+	}
+
 	return $original;
 }
 

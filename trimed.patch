@@ -1,0 +1,102 @@
+Index: src/wp-includes/functions.php
+===================================================================
+--- src/wp-includes/functions.php	(revision 37156)
++++ src/wp-includes/functions.php	(working copy)
+@@ -320,8 +322,11 @@
+  * @return mixed Unserialized data can be any type.
+  */
+ function maybe_unserialize( $original ) {
+-	if ( is_serialized( $original ) ) // don't attempt to unserialize data that wasn't serialized going in
+-		return @unserialize( $original );
++	if ( is_serialized( $original ) ) { // don't attempt to unserialize data that wasn't serialized going in
++
++		return @unserialize( trim( $original ) );
++	}
++
+ 	return $original;
+ }
+ 
+Index: tests/phpunit/tests/functions/maybe_unserialize.php
+===================================================================
+--- tests/phpunit/tests/functions/maybe_unserialize.php	(nonexistent)
++++ tests/phpunit/tests/functions/maybe_unserialize.php	(working copy)
+@@ -0,0 +1,78 @@
++<?php
++/**
++ * Test functions against maybe_unserialize.
++ * Tested scenarios:
++ *     1)
++ * @group functions.php
++ */
++
++if ( ! defined( 'WPINC' ) ) {
++	die;
++}
++
++
++class Tests_Functions_maybe_unserialize extends WP_UnitTestCase {
++
++	//Passing an array should return the same array back
++	public function test_maybe_unserialize_array() {
++		$expected = array(
++			'start' => 'here',
++			'end'   => 'here',
++		);
++
++		$this->assertEquals( $expected, maybe_unserialize( $expected ) );
++	}
++
++	//Tests normal string unserialization
++	public function test_maybe_unserialize_string() {
++		$this->assertEquals( 'string', maybe_unserialize( 'string' ) );
++
++		$this->assertEquals( '[string]', maybe_unserialize( '[string]' ) );
++
++		$this->assertEquals( '{s:5:"start";s:4:"here";s:3:"end";s:4:"here";}', maybe_unserialize( '{s:5:"start";s:4:"here";s:3:"end";s:4:"here";}' ) );
++
++	}
++
++	//Passing an int should return the same int
++	public function test_maybe_unserialize_int() {
++
++		$this->assertEquals( 100, maybe_unserialize( 100 ) );
++	}
++
++	//Passing null should return null
++	public function test_maybe_unserialize_null() {
++
++		$this->assertEquals( null, maybe_unserialize( null ) );
++	}
++
++	//Passing null should return null
++	public function test_maybe_unserialize_object() {
++		$object = new stdClass();
++
++		$this->assertEquals( $object, maybe_unserialize( $object ) );
++	}
++
++	public function test_maybe_unserialize_to_array() {
++		$expected = array(
++			'start' => 'here',
++			'end'   => 'here',
++		);
++
++		$this->assertEquals( $expected, maybe_unserialize( 'a:2:{s:5:"start";s:4:"here";s:3:"end";s:4:"here";}' ) );
++	}
++
++	public function test_maybe_unserialize_bad_serialized_string() {
++
++		// a:3 not a:2 as it should be
++		$this->assertFalse( maybe_unserialize( 'a:3:{s:5:"start";s:4:"here";s:3:"end";s:4:"here";}' ) );
++	}
++
++	public function test_maybe_unserialize_to_array_un_trimed() {
++		$expected = array(
++			'start' => 'here',
++			'end'   => 'here',
++		);
++
++		$this->assertEquals( $expected, maybe_unserialize( '    a:2:{s:5:"start";s:4:"here";s:3:"end";s:4:"here";}     ' ) );
++	}
++}
+\ No newline at end of file
