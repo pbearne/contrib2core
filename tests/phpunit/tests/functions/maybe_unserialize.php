@@ -25,11 +25,25 @@ class Tests_Functions_maybe_unserialize extends WP_UnitTestCase {
 		$this->assertEquals( 'string', maybe_unserialize( 'string' ) );
 
 		$this->assertEquals( '[string]', maybe_unserialize( '[string]' ) );
+
+		$this->assertEquals( '{s:5:"start";s:4:"here";s:3:"end";s:4:"here";}', maybe_unserialize( '{s:5:"start";s:4:"here";s:3:"end";s:4:"here";}' ) );
+
 	}
 
 	public function test_maybe_unserialize_int() {
 
 		$this->assertEquals( 100, maybe_unserialize( 100 ) );
+	}
+
+	public function test_maybe_unserialize_null() {
+
+		$this->assertEquals( null, maybe_unserialize( null ) );
+	}
+
+	public function test_maybe_unserialize_object() {
+		$object = new stdClass();
+
+		$this->assertEquals( $object, maybe_unserialize( $object ) );
 	}
 
 	public function test_maybe_unserialize_to_array() {
@@ -39,14 +53,11 @@ class Tests_Functions_maybe_unserialize extends WP_UnitTestCase {
 		);
 
 		$this->assertEquals( $expected, maybe_unserialize( 'a:2:{s:5:"start";s:4:"here";s:3:"end";s:4:"here";}' ) );
-
 	}
 
-	public function test_maybe_unserialize_to_array_bad_string() {
+	public function test_maybe_unserialize_bad_serialized_string() {
 
-		$this->assertEquals( '{s:5:"start";s:4:"here";s:3:"end";s:4:"here";}', maybe_unserialize( '{s:5:"start";s:4:"here";s:3:"end";s:4:"here";}' ) );
-
+		// a:3 not a:2 as it should be
 		$this->assertEquals( false, maybe_unserialize( 'a:3:{s:5:"start";s:4:"here";s:3:"end";s:4:"here";}' ) );
-
 	}
 }
