@@ -2097,22 +2097,22 @@
 				xInit = parseInt( control.params.width, 10 ),
 				yInit = parseInt( control.params.height, 10 ),
 				ratio = xInit / yInit,
-				xImg  = realWidth,
-				yImg  = realHeight,
+				xImg  = xInit,
+				yImg  = yInit,
 				x1, y1, imgSelectOptions;
 
 			controller.set( 'canSkipCrop', ! control.mustBeCropped( flexWidth, flexHeight, xInit, yInit, realWidth, realHeight ) );
 
-			if ( xImg / yImg > ratio ) {
-				yInit = yImg;
+			if ( realWidth / realHeight > ratio ) {
+				yInit = realHeight;
 				xInit = yInit * ratio;
 			} else {
-				xInit = xImg;
+				xInit = realWidth;
 				yInit = xInit / ratio;
 			}
 
-			x1 = ( xImg - xInit ) / 2;
-			y1 = ( yImg - yInit ) / 2;
+			x1 = ( realWidth - xInit ) / 2;
+			y1 = ( realHeight - yInit ) / 2;
 
 			imgSelectOptions = {
 				handles: true,
@@ -2121,6 +2121,8 @@
 				persistent: true,
 				imageWidth: realWidth,
 				imageHeight: realHeight,
+				minWidth: xImg > xInit ? xInit : xImg,
+				minHeight: yImg > yInit ? yInit : yImg,
 				x1: x1,
 				y1: y1,
 				x2: xInit + x1,
@@ -2130,11 +2132,15 @@
 			if ( flexHeight === false && flexWidth === false ) {
 				imgSelectOptions.aspectRatio = xInit + ':' + yInit;
 			}
-			if ( flexHeight === false ) {
-				imgSelectOptions.maxHeight = yInit;
+
+			if ( true === flexHeight ) {
+				delete imgSelectOptions.minHeight;
+				imgSelectOptions.maxWidth = realWidth;
 			}
-			if ( flexWidth === false ) {
-				imgSelectOptions.maxWidth = xInit;
+
+			if ( true === flexWidth ) {
+				delete imgSelectOptions.minWidth;
+				imgSelectOptions.maxHeight = realHeight;
 			}
 
 			return imgSelectOptions;
@@ -3266,12 +3272,7 @@
 		});
 
 		// Expand/Collapse the main customizer customize info.
-		$( '.customize-info' ).find( '> .accordion-section-title .customize-help-toggle' ).on( 'click keydown', function( event ) {
-			if ( api.utils.isKeydownButNotEnterEvent( event ) ) {
-				return;
-			}
-			event.preventDefault(); // Keep this AFTER the key filter above
-
+		$( '.customize-info' ).find( '> .accordion-section-title .customize-help-toggle' ).on( 'click', function() {
 			var section = $( this ).closest( '.accordion-section' ),
 				content = section.find( '.customize-panel-description:first' );
 
@@ -3627,13 +3628,8 @@
 			overlay.toggleClass( 'collapsed' ).toggleClass( 'expanded' );
 		});
 
-		$( '.customize-controls-preview-toggle' ).on( 'click keydown', function( event ) {
-			if ( api.utils.isKeydownButNotEnterEvent( event ) ) {
-				return;
-			}
-
+		$( '.customize-controls-preview-toggle' ).on( 'click', function() {
 			overlay.toggleClass( 'preview-only' );
-			event.preventDefault();
 		});
 
 		// Previewed device bindings.

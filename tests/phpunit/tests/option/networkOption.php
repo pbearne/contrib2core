@@ -1,9 +1,10 @@
 <?php
 
-if ( is_multisite() ) :
-
 /**
- * Tests specific to network options in Multisite.
+ * Tests specific to managing network options in multisite.
+ *
+ * Some tests will run in single site as the `_network_option()` functions
+ * are available and internally use `_option()` functions as fallbacks.
  *
  * @group option
  * @group ms-option
@@ -11,6 +12,10 @@ if ( is_multisite() ) :
  */
 class Tests_Option_NetworkOption extends WP_UnitTestCase {
 	function test_add_network_option_not_available_on_other_network() {
+		if ( ! is_multisite() ) {
+			$this->markTestSkipped( 'Test requires multisite' );
+		}
+
 		$id = self::factory()->network->create();
 		$option = rand_str();
 		$value = rand_str();
@@ -20,6 +25,10 @@ class Tests_Option_NetworkOption extends WP_UnitTestCase {
 	}
 
 	function test_add_network_option_available_on_same_network() {
+		if ( ! is_multisite() ) {
+			$this->markTestSkipped( 'Test requires multisite' );
+		}
+
 		$id = self::factory()->network->create();
 		$option = rand_str();
 		$value = rand_str();
@@ -29,6 +38,10 @@ class Tests_Option_NetworkOption extends WP_UnitTestCase {
 	}
 
 	function test_delete_network_option_on_only_one_network() {
+		if ( ! is_multisite() ) {
+			$this->markTestSkipped( 'Test requires multisite' );
+		}
+
 		$id = self::factory()->network->create();
 		$option = rand_str();
 		$value = rand_str();
@@ -37,6 +50,40 @@ class Tests_Option_NetworkOption extends WP_UnitTestCase {
 		add_network_option( $id, $option, $value );
 		delete_site_option( $option );
 		$this->assertEquals( $value, get_network_option( $id, $option, false ) );
+	}
+
+	/**
+	 * @ticket 22846
+	 */
+	public function test_add_network_option_is_not_stored_as_autoload_option() {
+		$key = rand_str();
+
+		if ( is_multisite() ) {
+			$this->markTestSkipped( 'Does not apply when used in multisite.' );
+		}
+
+		add_network_option( null, $key, 'Not an autoload option' );
+
+		$options = wp_load_alloptions();
+
+		$this->assertFalse( isset( $options[ $key ] ) );
+	}
+
+	/**
+	 * @ticket 22846
+	 */
+	public function test_update_network_option_is_not_stored_as_autoload_option() {
+		$key = rand_str();
+
+		if ( is_multisite() ) {
+			$this->markTestSkipped( 'Does not apply when used in multisite.' );
+		}
+
+		update_network_option( null, $key, 'Not an autoload option' );
+
+		$options = wp_load_alloptions();
+
+		$this->assertFalse( isset( $options[ $key ] ) );
 	}
 
 	/**
@@ -83,5 +130,3 @@ class Tests_Option_NetworkOption extends WP_UnitTestCase {
 		);
 	}
 }
-
-endif;
