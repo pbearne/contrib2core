@@ -91,10 +91,12 @@ function date_i18n( $dateformatstring, $unixtimestamp = false, $gmt = false ) {
 	$i = $unixtimestamp;
 
 	if ( false === $i ) {
-		if ( ! $gmt )
+		if ( ! $gmt ){
 			$i = current_time( 'timestamp' );
-		else
+		} else {
 			$i = time();
+		}
+
 		// we should not let date() interfere with our
 		// specially computed timestamp
 		$gmt = true;
@@ -115,21 +117,28 @@ function date_i18n( $dateformatstring, $unixtimestamp = false, $gmt = false ) {
 		$dateweekday_abbrev = $wp_locale->get_weekday_abbrev( $dateweekday );
 		$datemeridiem = $wp_locale->get_meridiem( $datefunc( 'a', $i ) );
 		$datemeridiem_capital = $wp_locale->get_meridiem( $datefunc( 'A', $i ) );
+
 		$dateformatstring = ' '.$dateformatstring;
-		$dateformatstring = preg_replace( "/([^\\\])D/", "\\1" . backslashit( $dateweekday_abbrev ), $dateformatstring );
-		$dateformatstring = preg_replace( "/([^\\\])F/", "\\1" . backslashit( $datemonth ), $dateformatstring );
-		$dateformatstring = preg_replace( "/([^\\\])l/", "\\1" . backslashit( $dateweekday ), $dateformatstring );
-		$dateformatstring = preg_replace( "/([^\\\])M/", "\\1" . backslashit( $datemonth_abbrev ), $dateformatstring );
-		$dateformatstring = preg_replace( "/([^\\\])a/", "\\1" . backslashit( $datemeridiem ), $dateformatstring );
-		$dateformatstring = preg_replace( "/([^\\\])A/", "\\1" . backslashit( $datemeridiem_capital ), $dateformatstring );
+		$dateformatstring = preg_replace( '/([^\\\])D/', '\\1' . backslashit( $dateweekday_abbrev ), $dateformatstring );
+		$dateformatstring = preg_replace( '/([^\\\])F/', '\\1' . backslashit( $datemonth ), $dateformatstring );
+		$dateformatstring = preg_replace( '/([^\\\])l/', '\\1' . backslashit( $dateweekday ), $dateformatstring );
+		$dateformatstring = preg_replace( '/([^\\\])M/', '\\1' . backslashit( $datemonth_abbrev ), $dateformatstring );
+		$dateformatstring = preg_replace( '/([^\\\])a/', '\\1' . backslashit( $datemeridiem ), $dateformatstring );
+		$dateformatstring = preg_replace( '/([^\\\])A/', '\\1' . backslashit( $datemeridiem_capital ), $dateformatstring );
+
+		var_dump($dateformatstring);
 
 		$dateformatstring = substr( $dateformatstring, 1, strlen( $dateformatstring ) -1 );
+
+
+
 	}
 	$timezone_formats = array( 'P', 'I', 'O', 'T', 'Z', 'e' );
 	$timezone_formats_re = implode( '|', $timezone_formats );
 	if ( preg_match( "/$timezone_formats_re/", $dateformatstring ) ) {
 		$timezone_string = get_option( 'timezone_string' );
 		if ( $timezone_string ) {
+			var_dump('in test ');
 			$timezone_object = timezone_open( $timezone_string );
 			$date_object = date_create( null, $timezone_object );
 			foreach ( $timezone_formats as $timezone_format ) {
@@ -142,6 +151,8 @@ function date_i18n( $dateformatstring, $unixtimestamp = false, $gmt = false ) {
 			}
 		}
 	}
+//	$dateformatstring = str_replace( '\\\\', '\\', str_replace( '#~#~#', '\\', $dateformatstring ) );
+//	var_dump($dateformatstring);
 	$j = @$datefunc( $dateformatstring, $i );
 
 	/**
@@ -1541,7 +1552,7 @@ function wp_get_referer() {
 /**
  * Retrieves unvalidated referer from '_wp_http_referer' or HTTP referer.
  *
- * Do not use for redirects, use {@see wp_get_referer()} instead.
+ * Do not use for redirects, use wp_get_referer() instead.
  *
  * @since 4.5.0
  *
@@ -1859,7 +1870,7 @@ function wp_get_upload_dir() {
  * @return array See above for description.
  */
 function wp_upload_dir( $time = null, $create_dir = true, $refresh_cache = false ) {
-	static $cache = array();
+	static $cache = array(), $tested_paths = array();
 
 	$key = sprintf( '%d-%s', get_current_blog_id(), (string) $time );
 
@@ -1879,13 +1890,10 @@ function wp_upload_dir( $time = null, $create_dir = true, $refresh_cache = false
 
 	if ( $create_dir ) {
 		$path = $uploads['path'];
-		$tested_paths = wp_cache_get( 'upload_dir_tested_paths' );
 
-		if ( ! is_array( $tested_paths ) ) {
-			$tested_paths = array();
-		}
-
-		if ( ! in_array( $path, $tested_paths, true ) ) {
+		if ( array_key_exists( $path, $tested_paths ) ) {
+			$uploads['error'] = $tested_paths[ $path ];
+		} else {
 			if ( ! wp_mkdir_p( $path ) ) {
 				if ( 0 === strpos( $uploads['basedir'], ABSPATH ) ) {
 					$error_path = str_replace( ABSPATH, '', $uploads['basedir'] ) . $uploads['subdir'];
@@ -1894,10 +1902,9 @@ function wp_upload_dir( $time = null, $create_dir = true, $refresh_cache = false
 				}
 
 				$uploads['error'] = sprintf( __( 'Unable to create directory %s. Is its parent directory writable by the server?' ), esc_html( $error_path ) );
-			} else {
-				$tested_paths[] = $path;
-				wp_cache_set( 'upload_dir_tested_paths', $tested_paths );
 			}
+
+			$tested_paths[ $path ] = $uploads['error'];
 		}
 	}
 
@@ -2540,7 +2547,7 @@ function wp_nonce_ays( $action ) {
  * @since 4.1.0 The `$title` and `$args` parameters were changed to optionally accept
  *              an integer to be used as the response code.
  *
- * @param string|WP_Error  $message Optional. Error message. If this is a {@see WP_Error} object,
+ * @param string|WP_Error  $message Optional. Error message. If this is a WP_Error object,
  *                                  the error's messages are used. Default empty.
  * @param string|int       $title   Optional. Error title. If `$message` is a `WP_Error` object,
  *                                  error data with the key 'title' may be used to specify the title.
@@ -2554,7 +2561,7 @@ function wp_nonce_ays( $action ) {
  *     @type bool   $back_link      Whether to include a link to go back. Default false.
  *     @type string $text_direction The text direction. This is only useful internally, when WordPress
  *                                  is still loading and the site's locale is not set up yet. Accepts 'rtl'.
- *                                  Default is the value of {@see is_rtl()}.
+ *                                  Default is the value of is_rtl().
  * }
  */
 function wp_die( $message = '', $title = '', $args = array() ) {
@@ -3081,14 +3088,13 @@ function wp_send_json_success( $data = null ) {
 /**
  * Send a JSON response back to an Ajax request, indicating failure.
  *
- * If the `$data` parameter is a {@see WP_Error} object, the errors
+ * If the `$data` parameter is a WP_Error object, the errors
  * within the object are processed and output as an array of error
  * codes and corresponding messages. All other types are output
  * without further processing.
  *
  * @since 3.5.0
- * @since 4.1.0 The `$data` parameter is now processed if a {@see WP_Error}
- *              object is passed in.
+ * @since 4.1.0 The `$data` parameter is now processed if a WP_Error object is passed in.
  *
  * @param mixed $data Data to encode as JSON, then print and die.
  */
@@ -3233,7 +3239,7 @@ function smilies_init() {
 		   ':idea:' => "\xf0\x9f\x92\xa1",
 		   ':oops:' => "\xf0\x9f\x98\xb3",
 		   ':razz:' => "\xf0\x9f\x98\x9b",
-		   ':roll:' => 'rolleyes.png',
+		   ':roll:' => "\xf0\x9f\x99\x84",
 		   ':wink:' => "\xf0\x9f\x98\x89",
 		    ':cry:' => "\xf0\x9f\x98\xa5",
 		    ':eek:' => "\xf0\x9f\x98\xae",

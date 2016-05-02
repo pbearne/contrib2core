@@ -903,7 +903,7 @@ function get_post_types( $args = array(), $output = 'names', $operator = 'and' )
  *                                             Default is value of $labels['name'].
  *     @type array       $labels               An array of labels for this post type. If not set, post
  *                                             labels are inherited for non-hierarchical types and page
- *                                             labels for hierarchical ones. {@see get_post_type_labels()}.
+ *                                             labels for hierarchical ones. get_post_type_labels().
  *     @type string      $description          A short descriptive summary of what the post type is.
  *                                             Default empty.
  *     @type bool        $public               Whether a post type is intended for use publicly either via
@@ -916,7 +916,7 @@ function get_post_types( $args = array(), $output = 'names', $operator = 'and' )
  *     @type bool        $exclude_from_search  Whether to exclude posts with this post type from front end search
  *                                             results. Default is the opposite value of $public.
  *     @type bool        $publicly_queryable   Whether queries can be performed on the front end for the post type
- *                                             as part of {@see parse_request()}. Endpoints would include:
+ *                                             as part of parse_request(). Endpoints would include:
  *                                             * ?post_type={post_type_key}
  *                                             * ?{post_type_key}={single_post_slug}
  *                                             * ?{post_type_query_var}={single_post_slug}
@@ -947,17 +947,17 @@ function get_post_types( $args = array(), $output = 'names', $operator = 'and' )
  *                                             array('story', 'stories'). Default 'post'.
  *     @type array       $capabilities         Array of capabilities for this post type. $capability_type is used
  *                                             as a base to construct capabilities by default.
- *                                             {@see get_post_type_capabilities()}.
+ *                                             See get_post_type_capabilities().
  *     @type bool        $map_meta_cap         Whether to use the internal default meta capability handling.
  *                                             Default false.
- *     @type array       $supports             An alias for calling {@see add_post_type_support()} directly.
- *                                             Defaults to array containing 'title' & 'editor'.
+ *     @type array       $supports             An alias for calling add_post_type_support() directly. Defaults to array
+ *                                             containing 'title' & 'editor'.
  *     @type callable    $register_meta_box_cb Provide a callback function that sets up the meta boxes for the
  *                                             edit form. Do remove_meta_box() and add_meta_box() calls in the
  *                                             callback. Default null.
  *     @type array       $taxonomies           An array of taxonomy identifiers that will be registered for the
- *                                             post type. Taxonomies can be registered later with
- *                                             {@see register_taxonomy()} or {@see register_taxonomy_for_object_type()}.
+ *                                             post type. Taxonomies can be registered later with register_taxonomy()
+ *                                             or register_taxonomy_for_object_type().
  *                                             Default empty array.
  *     @type bool|string $has_archive          Whether there should be post type archives, or if a string, the
  *                                             archive slug to use. Will generate the proper rewrite rules if
@@ -3005,6 +3005,8 @@ function wp_get_recent_posts( $args = array(), $output = ARRAY_A ) {
  *     @type int    $menu_order            The order the post should be displayed in. Default 0.
  *     @type string $post_mime_type        The mime type of the post. Default empty.
  *     @type string $guid                  Global Unique ID for referencing the post. Default empty.
+ *     @type array  $post_category         Array of category names, slugs, or IDs.
+ *                                         Defaults to value of the 'default_category' option.
  *     @type array  $tax_input             Array of taxonomy terms keyed by their taxonomy name. Default empty.
  *     @type array  $meta_input            Array of post meta values keyed by their post meta key. Default empty.
  * }
@@ -4434,11 +4436,12 @@ function _page_traverse_name( $page_id, &$children, &$result ){
  * Sub pages will be in the "directory" under the parent page post name.
  *
  * @since 1.5.0
+ * @since 4.6.0 The $page parameter is optional.
  *
- * @param WP_Post|object|int $page Page object or page ID.
+ * @param WP_Post|object|int $page Optional. Page ID or WP_Post object. Default is global $post.
  * @return string|false Page URI, false on error.
  */
-function get_page_uri( $page ) {
+function get_page_uri( $page = 0 ) {
 	if ( ! $page instanceof WP_Post ) {
 		$page = get_post( $page );
 	}
@@ -5494,7 +5497,7 @@ function get_lastpostdate( $timezone = 'server', $post_type = 'any' ) {
 	 *
 	 * @param string $date     Date the last post was published.
 	 * @param string $timezone Location to use for getting the post published date.
-	 *                         See {@see get_lastpostdate()} for accepted `$timezone` values.
+	 *                         See get_lastpostdate() for accepted `$timezone` values.
 	 */
 	return apply_filters( 'get_lastpostdate', _get_last_post_time( $timezone, 'date', $post_type ), $timezone );
 }
@@ -5509,7 +5512,7 @@ function get_lastpostdate( $timezone = 'server', $post_type = 'any' ) {
  * @since 1.2.0
  * @since 4.4.0 The `$post_type` argument was added.
  *
- * @param string $timezone  Optional. The timezone for the timestamp. See {@see get_lastpostdate()}
+ * @param string $timezone  Optional. The timezone for the timestamp. See get_lastpostdate()
  *                          for information on accepted values.
  *                          Default 'server'.
  * @param string $post_type Optional. The post type to check. Default 'any'.
@@ -5524,7 +5527,7 @@ function get_lastpostmodified( $timezone = 'server', $post_type = 'any' ) {
 	 * @param string $lastpostmodified Date the last post was modified.
 	 *                                 Returning anything other than false will short-circuit the function.
 	 * @param string $timezone         Location to use for getting the post modified date.
-	 *                                 See {@see get_lastpostdate()} for accepted `$timezone` values.
+	 *                                 See get_lastpostdate() for accepted `$timezone` values.
 	 * @param string $post_type        The post type to check.
 	 */
 	$lastpostmodified = apply_filters( 'pre_get_lastpostmodified', false, $timezone, $post_type );
@@ -5546,7 +5549,7 @@ function get_lastpostmodified( $timezone = 'server', $post_type = 'any' ) {
 	 *
 	 * @param string $lastpostmodified Date the last post was modified.
 	 * @param string $timezone         Location to use for getting the post modified date.
-	 *                                 See {@see get_lastpostdate()} for accepted `$timezone` values.
+	 *                                 See get_lastpostdate() for accepted `$timezone` values.
 	 */
 	return apply_filters( 'get_lastpostmodified', $lastpostmodified, $timezone );
 }
@@ -5851,8 +5854,7 @@ function _transition_post_status( $new_status, $old_status, $post ) {
  *
  * @param int     $deprecated Not used. Can be set to null. Never implemented. Not marked
  *                            as deprecated with _deprecated_argument() as it conflicts with
- *                            wp_transition_post_status() and the default filter for
- *                            {@see _future_post_hook()}.
+ *                            wp_transition_post_status() and the default filter for _future_post_hook().
  * @param WP_Post $post       Post object.
  */
 function _future_post_hook( $deprecated, $post ) {
@@ -6118,7 +6120,7 @@ function wp_add_trashed_suffix_to_post_name_for_trashed_posts( $post_name, $post
 }
 
 /**
- * Adds a trashed suffix For a given post.
+ * Adds a trashed suffix for a given post.
  *
  * Store its desired (i.e. current) slug so it can try to reclaim it
  * if the post is untrashed.
@@ -6129,6 +6131,7 @@ function wp_add_trashed_suffix_to_post_name_for_trashed_posts( $post_name, $post
  * @access private
  *
  * @param WP_Post $post The post.
+ * @return string New slug for the post.
  */
 function wp_add_trashed_suffix_to_post_name_for_post( $post ) {
 	global $wpdb;
