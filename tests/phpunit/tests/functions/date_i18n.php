@@ -65,4 +65,22 @@ class Tests_Functions_date_i18n extends WP_UnitTestCase {
 		$this->assertEquals( 'Tue-April-Tuesday-Apr-am-AM-+00:00-0-+0000-GMT-0-UTC' , date_i18n( 'D-F-l-M-a-A-P-I-O-T-Z-e' ), strtotime( '2016-04-18' ) );
 	}
 
+
+	function test_tran(){
+		require_once( ABSPATH . 'wp-admin/includes/translation-install.php' );
+		print_r( wp_get_available_translations() );
+		print_r( get_available_languages() );
+	}
+
+
+	function test_WP_locale(){
+		global $GLOBALS;
+		$default_locale = $GLOBALS['wp_locale'];
+		$GLOBALS['wp_locale'] = new WP_Locale('fr_FR');
+print_r($GLOBALS['wp_locale']);
+		print_r($default_locale);
+		$this->assertEqualSets( $default_locale,$GLOBALS['wp_locale'] );
+	}
+
+
 }

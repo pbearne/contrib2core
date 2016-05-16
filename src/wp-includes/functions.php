@@ -1865,7 +1865,8 @@ function wp_get_upload_dir() {
  * @uses _wp_upload_dir()
  *
  * @param string $time Optional. Time formatted in 'yyyy/mm'. Default null.
- * @param bool   $create_dir Optional. Whether to check and create the uploads directory. Default true (backwards compatible).
+ * @param bool   $create_dir Optional. Whether to check and create the uploads directory.
+ *                           Default true for backward compatibility.
  * @param bool   $refresh_cache Optional. Whether to refresh the cache. Default false.
  * @return array See above for description.
  */
@@ -2683,7 +2684,7 @@ function _default_wp_die_handler( $message, $title = '', $args = array() ) {
 		body {
 			background: #fff;
 			color: #444;
-			font-family: "Open Sans", sans-serif;
+			font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen-Sans", "Ubuntu", "Cantarell", "Helvetica Neue", sans-serif;
 			margin: 2em auto;
 			padding: 1em 2em;
 			max-width: 700px;
@@ -2694,7 +2695,7 @@ function _default_wp_die_handler( $message, $title = '', $args = array() ) {
 			border-bottom: 1px solid #dadada;
 			clear: both;
 			color: #666;
-			font: 24px "Open Sans", sans-serif;
+			font-size: 24px;
 			margin: 30px 0 0 0;
 			padding: 0;
 			padding-bottom: 7px;
