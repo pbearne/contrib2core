@@ -62,7 +62,7 @@ class WP_Comment_Query {
 	/**
 	 * SQL WHERE clause.
 	 *
-	 * Stored after the 'comments_clauses' filter is run on the compiled WHERE sub-clauses.
+	 * Stored after the {@see 'comments_clauses'} filter is run on the compiled WHERE sub-clauses.
 	 *
 	 * @since 4.4.2
 	 * @access protected
@@ -361,7 +361,7 @@ class WP_Comment_Query {
 	 *
 	 * @global wpdb $wpdb WordPress database abstraction object.
 	 *
-	 * @return int|array The list of comments.
+	 * @return int|array List of comments or number of found comments if `$count` argument is true.
 	 */
 	public function get_comments() {
 		global $wpdb;
@@ -414,7 +414,7 @@ class WP_Comment_Query {
 
 		if ( $comment_ids && $this->query_vars['number'] && ! $this->query_vars['no_found_rows'] ) {
 			/**
-			 * Filter the query used to retrieve found comment count.
+			 * Filters the query used to retrieve found comment count.
 			 *
 			 * @since 4.4.0
 			 *
@@ -453,7 +453,7 @@ class WP_Comment_Query {
 		}
 
 		/**
-		 * Filter the comment query results.
+		 * Filters the comment query results.
 		 *
 		 * @since 3.1.0
 		 *
@@ -850,7 +850,7 @@ class WP_Comment_Query {
 
 		$pieces = array( 'fields', 'join', 'where', 'orderby', 'limits', 'groupby' );
 		/**
-		 * Filter the comment query clauses.
+		 * Filters the comment query clauses.
 		 *
 		 * @since 3.1.0
 		 *

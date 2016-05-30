@@ -235,7 +235,7 @@ function get_blog_details( $fields = null, $get_all = true ) {
 	restore_current_blog();
 
 	/**
-	 * Filter a blog's details.
+	 * Filters a blog's details.
 	 *
 	 * @since MU
 	 *
@@ -468,6 +468,99 @@ function clean_blog_cache( $blog ) {
 }
 
 /**
+ * Retrieves site data given a site ID or site object.
+ *
+ * Site data will be cached and returned after being passed through a filter.
+ * If the provided site is empty, the current site global will be used.
+ *
+ * @since 4.6.0
+ *
+ * @global WP_Site $current_blog The current site.
+ *
+ * @param WP_Site|int $site   Site to retrieve.
+ * @param string      $output Optional. Type of output to return. OBJECT or ARRAY_A or ARRAY_N constants.
+ * @return WP_Site|array|null Depends on $output value.
+ */
+function get_site( &$site = null, $output = OBJECT ) {
+	global $current_blog;
+	if ( empty( $site ) && isset( $current_blog ) ) {
+		$site = $current_blog;
+	}
+
+	if ( $site instanceof WP_Site ) {
+		$_site = $site;
+	} elseif ( is_object( $site ) ) {
+		$_site = new WP_Site( $site );
+	} else {
+		$_site = WP_Site::get_instance( $site );
+	}
+
+	if ( ! $_site ) {
+		return null;
+	}
+
+	/**
+	 * Fires after a site is retrieved.
+	 *
+	 * @since 4.6.0
+	 *
+	 * @param mixed $_site Site data.
+	 */
+	$_site = apply_filters( 'get_site', $_site );
+
+	if ( $output == OBJECT ) {
+		return $_site;
+	} elseif ( $output == ARRAY_A ) {
+		return $_site->to_array();
+	} elseif ( $output == ARRAY_N ) {
+		return array_values( $_site->to_array() );
+	}
+
+	return $_site;
+}
+
+/**
+ * Adds any sites from the given ids to the cache that do not already exist in cache.
+ *
+ * @since 4.6.0
+ * @access private
+ *
+ * @see update_site_cache()
+ *
+ * @global wpdb $wpdb WordPress database abstraction object.
+ *
+ * @param array $ids ID list.
+ */
+function _prime_site_caches( $ids ) {
+	global $wpdb;
+
+	$non_cached_ids = _get_non_cached_ids( $ids, 'sites' );
+	if ( ! empty( $non_cached_ids ) ) {
+		$fresh_sites = $wpdb->get_results( sprintf( "SELECT * FROM $wpdb->blogs WHERE blog_id IN (%s)", join( ",", array_map( 'intval', $non_cached_ids ) ) ) );
+
+		update_site_cache( $fresh_sites );
+	}
+}
+
+/**
+ * Updates sites in cache.
+ *
+ * @since 4.6.0
+ *
+ * @param array $sites Array of site objects, passed by reference.
+ */
+function update_site_cache( &$sites ) {
+	if ( ! $sites ) {
+		return;
+	}
+
+	foreach ( $sites as $site ) {
+		wp_cache_add( $site->blog_id, $site, 'sites' );
+		wp_cache_add( $site->blog_id . 'short', $site, 'blog-details' );
+	}
+}
+
+/**
  * Retrieve option value for a given blog id based on name of option.
  *
  * If the option does not exist or does not have a value, then the return value
@@ -498,7 +591,7 @@ function get_blog_option( $id, $option, $default = false ) {
 	restore_current_blog();
 
 	/**
-	 * Filter a blog option value.
+	 * Filters a blog option value.
 	 *
 	 * The dynamic portion of the hook name, `$option`, refers to the blog option name.
 	 *

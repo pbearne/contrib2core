@@ -20,7 +20,7 @@
  *
  * Code within certain html blocks are skipped.
  *
- * Do not use this function before the 'init' action hook; everything will break.
+ * Do not use this function before the {@see 'init'} action hook; everything will break.
  *
  * @since 0.71
  *
@@ -66,7 +66,7 @@ function wptexturize( $text, $reset = false ) {
 	// Set up static variables. Run once only.
 	if ( $reset || ! isset( $static_characters ) ) {
 		/**
-		 * Filter whether to skip running wptexturize().
+		 * Filters whether to skip running wptexturize().
 		 *
 		 * Passing false to the filter will effectively short-circuit wptexturize().
 		 * returning the original text passed to the function instead.
@@ -195,7 +195,7 @@ function wptexturize( $text, $reset = false ) {
 
 	// Must do this every time in case plugins use these filters in a context sensitive manner
 	/**
-	 * Filter the list of HTML elements not to texturize.
+	 * Filters the list of HTML elements not to texturize.
 	 *
 	 * @since 2.8.0
 	 *
@@ -203,7 +203,7 @@ function wptexturize( $text, $reset = false ) {
 	 */
 	$no_texturize_tags = apply_filters( 'no_texturize_tags', $default_no_texturize_tags );
 	/**
-	 * Filter the list of shortcodes not to texturize.
+	 * Filters the list of shortcodes not to texturize.
 	 *
 	 * @since 2.8.0
 	 *
@@ -1375,7 +1375,7 @@ function sanitize_file_name( $filename ) {
 	$filename_raw = $filename;
 	$special_chars = array("?", "[", "]", "/", "\\", "=", "<", ">", ":", ";", ",", "'", "\"", "&", "$", "#", "*", "(", ")", "|", "~", "`", "!", "{", "}", "%", "+", chr(0));
 	/**
-	 * Filter the list of characters to remove from a filename.
+	 * Filters the list of characters to remove from a filename.
 	 *
 	 * @since 2.8.0
 	 *
@@ -1395,7 +1395,7 @@ function sanitize_file_name( $filename ) {
 	// Return if only one extension
 	if ( count( $parts ) <= 2 ) {
 		/**
-		 * Filter a sanitized filename string.
+		 * Filters a sanitized filename string.
 		 *
 		 * @since 2.8.0
 		 *
@@ -1441,7 +1441,7 @@ function sanitize_file_name( $filename ) {
  * Removes tags, octets, entities, and if strict is enabled, will only keep
  * alphanumeric, _, space, ., -, @. After sanitizing, it passes the username,
  * raw username (the username in the parameter), and the value of $strict as
- * parameters for the 'sanitize_user' filter.
+ * parameters for the {@see 'sanitize_user'} filter.
  *
  * @since 2.0.0
  *
@@ -1466,7 +1466,7 @@ function sanitize_user( $username, $strict = false ) {
 	$username = preg_replace( '|\s+|', ' ', $username );
 
 	/**
-	 * Filter a sanitized username string.
+	 * Filters a sanitized username string.
 	 *
 	 * @since 2.0.1
 	 *
@@ -1493,7 +1493,7 @@ function sanitize_key( $key ) {
 	$key = preg_replace( '/[^a-z0-9_\-]/', '', $key );
 
 	/**
-	 * Filter a sanitized key string.
+	 * Filters a sanitized key string.
 	 *
 	 * @since 3.0.0
 	 *
@@ -1524,7 +1524,7 @@ function sanitize_title( $title, $fallback_title = '', $context = 'save' ) {
 		$title = remove_accents($title);
 
 	/**
-	 * Filter a sanitized title string.
+	 * Filters a sanitized title string.
 	 *
 	 * @since 1.2.0
 	 *
@@ -1669,7 +1669,7 @@ function sanitize_html_class( $class, $fallback = '' ) {
 		return sanitize_html_class( $fallback );
 	}
 	/**
-	 * Filter a sanitized HTML class string.
+	 * Filters a sanitized HTML class string.
 	 *
 	 * @since 2.8.0
 	 *
@@ -1904,8 +1904,8 @@ function force_balance_tags( $text ) {
  * Acts on text which is about to be edited.
  *
  * The $content is run through esc_textarea(), which uses htmlspecialchars()
- * to convert special characters to HTML entities. If $richedit is set to true,
- * it is simply a holder for the 'format_to_edit' filter.
+ * to convert special characters to HTML entities. If `$richedit` is set to true,
+ * it is simply a holder for the {@see 'format_to_edit'} filter.
  *
  * @since 0.71
  * @since 4.4.0 The `$richedit` parameter was renamed to `$rich_text` for clarity.
@@ -1918,7 +1918,7 @@ function force_balance_tags( $text ) {
  */
 function format_to_edit( $content, $rich_text = false ) {
 	/**
-	 * Filter the text to be formatted for editing.
+	 * Filters the text to be formatted for editing.
 	 *
 	 * @since 1.2.0
 	 *
@@ -2104,8 +2104,7 @@ function antispambot( $email_address, $hex_encoding = 0 ) {
 /**
  * Callback to convert URI match to HTML A element.
  *
- * This function was backported from 2.5.0 to 2.3.2. Regex callback for {@link
- * make_clickable()}.
+ * This function was backported from 2.5.0 to 2.3.2. Regex callback for make_clickable().
  *
  * @since 2.3.2
  * @access private
@@ -2141,8 +2140,7 @@ function _make_url_clickable_cb( $matches ) {
 /**
  * Callback to convert URL match to HTML A element.
  *
- * This function was backported from 2.5.0 to 2.3.2. Regex callback for {@link
- * make_clickable()}.
+ * This function was backported from 2.5.0 to 2.3.2. Regex callback for make_clickable().
  *
  * @since 2.3.2
  * @access private
@@ -2171,8 +2169,7 @@ function _make_web_ftp_clickable_cb( $matches ) {
 /**
  * Callback to convert email address match to HTML A element.
  *
- * This function was backported from 2.5.0 to 2.3.2. Regex callback for {@link
- * make_clickable()}.
+ * This function was backported from 2.5.0 to 2.3.2. Regex callback for make_clickable().
  *
  * @since 2.3.2
  * @access private
@@ -2367,7 +2364,8 @@ function wp_rel_nofollow_callback( $matches ) {
 /**
  * Convert one smiley code to the icon graphic file equivalent.
  *
- * Callback handler for {@link convert_smilies()}.
+ * Callback handler for convert_smilies().
+ *
  * Looks up one smiley code in the $wpsmiliestrans global array and returns an
  * `<img>` string for that smiley.
  *
@@ -2397,7 +2395,7 @@ function translate_smiley( $matches ) {
 	}
 
 	/**
-	 * Filter the Smiley image URL before it's used in the image element.
+	 * Filters the Smiley image URL before it's used in the image element.
 	 *
 	 * @since 2.9.0
 	 *
@@ -2480,7 +2478,7 @@ function is_email( $email, $deprecated = false ) {
 	// Test for the minimum length the email can be
 	if ( strlen( $email ) < 3 ) {
 		/**
-		 * Filter whether an email address is valid.
+		 * Filters whether an email address is valid.
 		 *
 		 * This filter is evaluated under several different contexts, such as 'email_too_short',
 		 * 'email_no_at', 'local_invalid_chars', 'domain_period_sequence', 'domain_period_limits',
@@ -2717,7 +2715,7 @@ function sanitize_email( $email ) {
 	// Test for the minimum length the email can be
 	if ( strlen( $email ) < 3 ) {
 		/**
-		 * Filter a sanitized email address.
+		 * Filters a sanitized email address.
 		 *
 		 * This filter is evaluated under several contexts, including 'email_too_short',
 		 * 'email_no_at', 'local_invalid_chars', 'domain_period_sequence', 'domain_period_limits',
@@ -2860,7 +2858,7 @@ function human_time_diff( $from, $to = '' ) {
 	}
 
 	/**
-	 * Filter the human readable difference between two timestamps.
+	 * Filters the human readable difference between two timestamps.
 	 *
 	 * @since 4.0.0
 	 *
@@ -2879,8 +2877,8 @@ function human_time_diff( $from, $to = '' ) {
  * that, then the string ' [&hellip;]' will be appended to the excerpt. If the string
  * is less than 55 words, then the content will be returned as is.
  *
- * The 55 word limit can be modified by plugins/themes using the excerpt_length filter
- * The ' [&hellip;]' string can be modified by plugins/themes using the excerpt_more filter
+ * The 55 word limit can be modified by plugins/themes using the {@see 'excerpt_length'} filter
+ * The ' [&hellip;]' string can be modified by plugins/themes using the {@see 'excerpt_more'} filter
  *
  * @since 1.5.0
  *
@@ -2899,7 +2897,7 @@ function wp_trim_excerpt( $text = '' ) {
 		$text = str_replace(']]>', ']]&gt;', $text);
 
 		/**
-		 * Filter the number of words in an excerpt.
+		 * Filters the number of words in an excerpt.
 		 *
 		 * @since 2.7.0
 		 *
@@ -2907,7 +2905,7 @@ function wp_trim_excerpt( $text = '' ) {
 		 */
 		$excerpt_length = apply_filters( 'excerpt_length', 55 );
 		/**
-		 * Filter the string in the "more" link displayed after a trimmed excerpt.
+		 * Filters the string in the "more" link displayed after a trimmed excerpt.
 		 *
 		 * @since 2.9.0
 		 *
@@ -2917,7 +2915,7 @@ function wp_trim_excerpt( $text = '' ) {
 		$text = wp_trim_words( $text, $excerpt_length, $excerpt_more );
 	}
 	/**
-	 * Filter the trimmed excerpt string.
+	 * Filters the trimmed excerpt string.
 	 *
 	 * @since 2.8.0
 	 *
@@ -2973,7 +2971,7 @@ function wp_trim_words( $text, $num_words = 55, $more = null ) {
 	}
 
 	/**
-	 * Filter the text content after words have been trimmed.
+	 * Filters the text content after words have been trimmed.
 	 *
 	 * @since 3.3.0
 	 *
@@ -2996,7 +2994,7 @@ function wp_trim_words( $text, $num_words = 55, $more = null ) {
 function ent2ncr( $text ) {
 
 	/**
-	 * Filter text before named entities are converted into numbered entities.
+	 * Filters text before named entities are converted into numbered entities.
 	 *
 	 * A non-null string must be returned for the filter to be evaluated.
 	 *
@@ -3295,7 +3293,7 @@ function format_for_editor( $text, $default_editor = null ) {
 	}
 
 	/**
-	 * Filter the text after it is formatted for the editor.
+	 * Filters the text after it is formatted for the editor.
 	 *
 	 * @since 4.3.0
 	 *
@@ -3355,7 +3353,7 @@ function esc_sql( $data ) {
  * Checks and cleans a URL.
  *
  * A number of characters are removed from the URL. If the URL is for displaying
- * (the default behaviour) ampersands are also replaced. The 'clean_url' filter
+ * (the default behaviour) ampersands are also replaced. The {@see 'clean_url'} filter
  * is applied to the returned cleaned URL.
  *
  * @since 2.8.0
@@ -3364,7 +3362,7 @@ function esc_sql( $data ) {
  * @param array  $protocols Optional. An array of acceptable protocols.
  *		                    Defaults to return value of wp_allowed_protocols()
  * @param string $_context  Private. Use esc_url_raw() for database usage.
- * @return string The cleaned $url after the 'clean_url' filter is applied.
+ * @return string The cleaned $url after the {@see 'clean_url'} filter is applied.
  */
 function esc_url( $url, $protocols = null, $_context = 'display' ) {
 	$original_url = $url;
@@ -3448,7 +3446,7 @@ function esc_url( $url, $protocols = null, $_context = 'display' ) {
 	}
 
 	/**
-	 * Filter a string cleaned and escaped for output as a URL.
+	 * Filters a string cleaned and escaped for output as a URL.
 	 *
 	 * @since 2.3.0
 	 *
@@ -3493,7 +3491,7 @@ function htmlentities2( $myHTML ) {
  *
  * Escapes text strings for echoing in JS. It is intended to be used for inline JS
  * (in a tag attribute, for example onclick="..."). Note that the strings have to
- * be in single quotes. The filter 'js_escape' is also applied here.
+ * be in single quotes. The {@see 'js_escape'} filter is also applied here.
  *
  * @since 2.8.0
  *
@@ -3507,7 +3505,7 @@ function esc_js( $text ) {
 	$safe_text = str_replace( "\r", '', $safe_text );
 	$safe_text = str_replace( "\n", '\\n', addslashes( $safe_text ) );
 	/**
-	 * Filter a string cleaned and escaped for output in JavaScript.
+	 * Filters a string cleaned and escaped for output in JavaScript.
 	 *
 	 * Text passed to esc_js() is stripped of invalid or special characters,
 	 * and properly slashed for output.
@@ -3532,7 +3530,7 @@ function esc_html( $text ) {
 	$safe_text = wp_check_invalid_utf8( $text );
 	$safe_text = _wp_specialchars( $safe_text, ENT_QUOTES );
 	/**
-	 * Filter a string cleaned and escaped for output in HTML.
+	 * Filters a string cleaned and escaped for output in HTML.
 	 *
 	 * Text passed to esc_html() is stripped of invalid or special characters
 	 * before output.
@@ -3557,7 +3555,7 @@ function esc_attr( $text ) {
 	$safe_text = wp_check_invalid_utf8( $text );
 	$safe_text = _wp_specialchars( $safe_text, ENT_QUOTES );
 	/**
-	 * Filter a string cleaned and escaped for output in an HTML attribute.
+	 * Filters a string cleaned and escaped for output in an HTML attribute.
 	 *
 	 * Text passed to esc_attr() is stripped of invalid or special characters
 	 * before output.
@@ -3581,7 +3579,7 @@ function esc_attr( $text ) {
 function esc_textarea( $text ) {
 	$safe_text = htmlspecialchars( $text, ENT_QUOTES, get_option( 'blog_charset' ) );
 	/**
-	 * Filter a string cleaned and escaped for output in a textarea element.
+	 * Filters a string cleaned and escaped for output in a textarea element.
 	 *
 	 * @since 3.1.0
 	 *
@@ -3602,7 +3600,7 @@ function esc_textarea( $text ) {
 function tag_escape( $tag_name ) {
 	$safe_tag = strtolower( preg_replace('/[^a-zA-Z0-9_:]/', '', $tag_name) );
 	/**
-	 * Filter a string cleaned and escaped for output as an HTML tag.
+	 * Filters a string cleaned and escaped for output as an HTML tag.
 	 *
 	 * @since 2.8.0
 	 *
@@ -3706,6 +3704,10 @@ function sanitize_option( $option, $value ) {
 		case 'blogdescription':
 		case 'blogname':
 			$value = $wpdb->strip_invalid_text_for_column( $wpdb->options, 'option_value', $value );
+			if ( $value !== $original_value ) {
+				$value = $wpdb->strip_invalid_text_for_column( $wpdb->options, 'option_value', wp_encode_emoji( $original_value ) );
+			}
+
 			if ( is_wp_error( $value ) ) {
 				$error = $value->get_error_message();
 			} else {
@@ -3870,7 +3872,7 @@ function sanitize_option( $option, $value ) {
 	}
 
 	/**
-	 * Filter an option value following sanitization.
+	 * Filters an option value following sanitization.
 	 *
 	 * @since 2.3.0
 	 * @since 4.3.0 Added the `$original_value` parameter.
@@ -3926,7 +3928,7 @@ function wp_parse_str( $string, &$array ) {
 	if ( get_magic_quotes_gpc() )
 		$array = stripslashes_deep( $array );
 	/**
-	 * Filter the array of variables derived from a parsed string.
+	 * Filters the array of variables derived from a parsed string.
 	 *
 	 * @since 2.3.0
 	 *
@@ -4011,7 +4013,7 @@ function wp_sprintf( $pattern ) {
 			}
 
 			/**
-			 * Filter a fragment from the pattern passed to wp_sprintf().
+			 * Filters a fragment from the pattern passed to wp_sprintf().
 			 *
 			 * If the fragment is unchanged, then sprintf() will be run on the fragment.
 			 *
@@ -4057,7 +4059,7 @@ function wp_sprintf_l( $pattern, $args ) {
 		return '';
 
 	/**
-	 * Filter the translated delimiters used by wp_sprintf_l().
+	 * Filters the translated delimiters used by wp_sprintf_l().
 	 * Placeholders (%s) are included to assist translators and then
 	 * removed before the array of strings reaches the filter.
 	 *
@@ -4280,7 +4282,7 @@ function sanitize_text_field( $str ) {
 	}
 
 	/**
-	 * Filter a sanitized text field string.
+	 * Filters a sanitized text field string.
 	 *
 	 * @since 2.9.0
 	 *
@@ -4342,7 +4344,7 @@ function capital_P_dangit( $text ) {
 function sanitize_mime_type( $mime_type ) {
 	$sani_mime_type = preg_replace( '/[^-+*.a-zA-Z0-9\/]/', '', $mime_type );
 	/**
-	 * Filter a mime type following sanitization.
+	 * Filters a mime type following sanitization.
 	 *
 	 * @since 3.1.3
 	 *
@@ -4369,7 +4371,7 @@ function sanitize_trackback_urls( $to_ping ) {
 	$urls_to_ping = array_map( 'esc_url_raw', $urls_to_ping );
 	$urls_to_ping = implode( "\n", $urls_to_ping );
 	/**
-	 * Filter a list of trackback URLs following sanitization.
+	 * Filters a list of trackback URLs following sanitization.
 	 *
 	 * The string returned here consists of a space or carriage return-delimited list
 	 * of trackback URLs.
@@ -4462,7 +4464,7 @@ function wp_spaces_regexp() {
 
 	if ( empty( $spaces ) ) {
 		/**
-		 * Filter the regexp for common whitespace characters.
+		 * Filters the regexp for common whitespace characters.
 		 *
 		 * This string is substituted for the \s sequence as needed in regular
 		 * expressions. For websites not written in English, different characters
@@ -4513,12 +4515,12 @@ img.emoji {
 }
 
 /**
+ * Print the inline Emoji detection script if it is not already printed.
  *
- * @global string $wp_version
+ * @since 4.2.0
  * @staticvar bool $printed
  */
 function print_emoji_detection_script() {
-	global $wp_version;
 	static $printed = false;
 
 	if ( $printed ) {
@@ -4527,24 +4529,57 @@ function print_emoji_detection_script() {
 
 	$printed = true;
 
+	_print_emoji_detection_script();
+}
+
+/**
+ * Print inline Emoji dection script
+ *
+ * @ignore
+ * @since 4.6.0
+ * @access private
+ *
+ * @global string $wp_version
+ */
+function _print_emoji_detection_script() {
+	global $wp_version;
+
 	$settings = array(
 		/**
-		 * Filter the URL where emoji images are hosted.
+		 * Filters the URL where emoji png images are hosted.
 		 *
 		 * @since 4.2.0
 		 *
-		 * @param string The emoji base URL.
+		 * @param string The emoji base URL for png images.
 		 */
 		'baseUrl' => apply_filters( 'emoji_url', 'https://s.w.org/images/core/emoji/72x72/' ),
 
 		/**
-		 * Filter the extension of the emoji files.
+		 * Filters the extension of the emoji png files.
 		 *
 		 * @since 4.2.0
 		 *
-		 * @param string The emoji extension. Default .png.
+		 * @param string The emoji extension for png files. Default .png.
 		 */
 		'ext' => apply_filters( 'emoji_ext', '.png' ),
+
+		/**
+		 * Filters the URL where emoji SVG images are hosted.
+		 *
+		 * @since 4.6.0
+		 *
+		 * @param string The emoji base URL for svg images.
+		 */
+		'svgUrl' => apply_filters( 'emoji_svg_url', 'https://s.w.org/images/core/emoji/svg/' ),
+
+		/**
+		 * Filters the extension of the emoji SVG files.
+		 *
+		 * @since 4.6.0
+		 *
+		 * @param string The emoji extension for svg files. Default .svg.
+		 */
+		'svgExt' => apply_filters( 'emoji_svg_ext', '.svg' ),
 	);
 
 	$version = 'ver=' . $wp_version;

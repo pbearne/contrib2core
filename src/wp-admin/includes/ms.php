@@ -112,7 +112,7 @@ function wpmu_delete_blog( $blog_id, $drop = false ) {
 
 		$tables = $wpdb->tables( 'blog' );
 		/**
-		 * Filter the tables to drop when the site is deleted.
+		 * Filters the tables to drop when the site is deleted.
 		 *
 		 * @since MU
 		 *
@@ -128,7 +128,7 @@ function wpmu_delete_blog( $blog_id, $drop = false ) {
 		$wpdb->delete( $wpdb->blogs, array( 'blog_id' => $blog_id ) );
 
 		/**
-		 * Filter the upload base directory to delete when the site is deleted.
+		 * Filters the upload base directory to delete when the site is deleted.
 		 *
 		 * @since MU
 		 *
@@ -291,7 +291,7 @@ All at ###SITENAME###
 ###SITEURL###' );
 
 	/**
-	 * Filter the email text sent when the site admin email is changed.
+	 * Filters the email text sent when the site admin email is changed.
 	 *
 	 * The following strings have a special meaning and will get replaced dynamically:
 	 * ###USERNAME###  The current user's username.
@@ -371,7 +371,7 @@ All at ###SITENAME###
 ###SITEURL###' );
 
 		/**
-		 * Filter the email text sent when a user changes emails.
+		 * Filters the email text sent when a user changes emails.
 		 *
 		 * The following strings have a special meaning and will get replaced dynamically:
 		 * ###USERNAME###  The current user's username.
@@ -604,7 +604,7 @@ function format_code_lang( $code = '' ) {
 		've' => 'Venda', 'vi' => 'Vietnamese', 'vo' => 'Volapük', 'cy' => 'Welsh','wa' => 'Walloon','wo' => 'Wolof', 'xh' => 'Xhosa', 'yi' => 'Yiddish', 'yo' => 'Yoruba', 'za' => 'Zhuang; Chuang', 'zu' => 'Zulu' );
 
 	/**
-	 * Filter the language codes.
+	 * Filters the language codes.
 	 *
 	 * @since MU
 	 *
@@ -730,7 +730,7 @@ function mu_dropdown_languages( $lang_files = array(), $current = '' ) {
 	uksort( $output, 'strnatcasecmp' );
 
 	/**
-	 * Filter the languages available in the dropdown.
+	 * Filters the languages available in the dropdown.
 	 *
 	 * @since MU
 	 *
@@ -873,7 +873,7 @@ function can_edit_network( $site_id ) {
 		$result = false;
 
 	/**
-	 * Filter whether this network can be edited from this page.
+	 * Filters whether this network can be edited from this page.
 	 *
 	 * @since 3.1.0
 	 *
@@ -1027,4 +1027,85 @@ jQuery(document).ready( function($) {
 });
 </script>
 <?php
+}
+
+/**
+ * Outputs the HTML for a network's "Edit Site" tabular interface
+ *
+ * @since 4.6.0
+ *
+ * @link https://core.trac.wordpress.org/ticket/15800 discussion
+ *
+ * @param $args {
+ *     Optional. Array or string of Query parameters.
+ *
+ *     @type int     $blog_id   The site ID. Default is the current site.
+ *     @type array   $links     The tabs to include with (label|url|cap) keys
+ *     @type string  $selected  The ID of the selected link
+ * }
+ */
+function network_edit_site_nav( $args = array() ) {
+
+	/**
+	 * Filters the links that appear on site-editing network pages
+	 *
+	 * Default links: 'site-info', 'site-users', 'site-themes', and 'site-settings'
+	 *
+	 * @since 4.6.0
+	 *
+	 * @param array Array of link data.
+	 */
+	$links = apply_filters( 'network_edit_site_nav_links', array(
+		'site-info'     => array( 'label' => __( 'Info' ),     'url' => 'site-info.php',     'cap' => 'manage_sites' ),
+		'site-users'    => array( 'label' => __( 'Users' ),    'url' => 'site-users.php',    'cap' => 'manage_sites' ),
+		'site-themes'   => array( 'label' => __( 'Themes' ),   'url' => 'site-themes.php',   'cap' => 'manage_sites' ),
+		'site-settings' => array( 'label' => __( 'Settings' ), 'url' => 'site-settings.php', 'cap' => 'manage_sites' )
+	) );
+
+	// Parse arguments
+	$r = wp_parse_args( $args, array(
+		'blog_id'  => isset( $_GET['blog_id'] ) ? (int) $_GET['blog_id'] : 0,
+		'links'    => $links,
+		'selected' => 'site-info',
+	) );
+
+	// Setup the links array
+	$screen_links = array();
+
+	// Loop through tabs
+	foreach ( $r['links'] as $link_id => $link ) {
+
+		// Skip link if user can't access
+		if ( ! current_user_can( $link['cap'], $r['blog_id'] ) ) {
+			continue;
+		}
+
+		// Link classes
+		$classes = array( 'nav-tab' );
+
+		// Selected is set by the parent OR assumed by the $pagenow global
+		if ( $r['selected'] === $link_id || $link['url'] === $GLOBALS['pagenow'] ) {
+			$classes[] = 'nav-tab-active';
+		}
+
+		// Escape each class
+		$esc_classes = implode( ' ', array_map( 'esc_attr', $classes ) );
+
+		// Get the URL for this link
+		$url = add_query_arg( array( 'id' => $r['blog_id'] ), network_admin_url( $link['url'] ) );
+
+		// Add link to nav links
+		$screen_links[ $link_id ] = '<a href="' . esc_url( $url ) . '" id="' . esc_attr( $link_id ) . '" class="' . $esc_classes . '">' . esc_html( $link['label'] ) . '</a>';
+	}
+
+	// Start a buffer
+	ob_start();
+
+	// All done!
+	echo '<h2 class="nav-tab-wrapper wp-clearfix">';
+	echo implode( '', $screen_links );
+	echo '</h2>';
+
+	// Output the nav
+	echo ob_get_clean();
 }

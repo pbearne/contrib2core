@@ -1,0 +1,91 @@
+Index: src/wp-includes/locale.php
+===================================================================
+--- src/wp-includes/locale.php	(revision 37441)
++++ src/wp-includes/locale.php	(working copy)
+@@ -359,8 +359,27 @@
+ 	 * Constructor which calls helper methods to set up object variables
+ 	 *
+ 	 * @since 2.1.0
++	 * @param null $lang to change the current locale
+ 	 */
+-	public function __construct() {
++	public function __construct( $lang = null ) {
++		if ( null !== $lang ) {
++			require_once( ABSPATH . 'wp-admin/includes/translation-install.php' );
++			global $locale;
++
++			if( ! in_array( $lang, get_available_languages() ) ) {
++				if ( array_key_exists( $lang, wp_get_available_translations() ) ) {
++					$language = wp_download_language_pack( $lang );
++					if ( $language ) {
++						load_default_textdomain( $language );
++						$locale = $language;
++					}
++				}
++			} else{
++				load_default_textdomain( $lang );
++				$locale = $lang;
++			}
++		}
++
+ 		$this->init();
+ 		$this->register_globals();
+ 	}
+Index: tests/phpunit/tests/locale/test-locale.php
+===================================================================
+--- tests/phpunit/tests/locale/test-locale.php	(nonexistent)
++++ tests/phpunit/tests/locale/test-locale.php	(working copy)
+@@ -0,0 +1,53 @@
++<?php
++/**
++ * wordpress-develop.
++ * User: Paul
++ * Date: 2016-05-16
++ *
++ */
++
++if ( !defined( 'WPINC' ) ) {
++	die;
++}
++
++class test_Locale extends WP_UnitTestCase {
++
++	static $fr_lanf_files = array(
++		'admin-fr_FR.mo',
++		'admin-fr_FR.po',
++		'admin-network-fr_FR.mo',
++		'admin-network-fr_FR.po',
++		'continents-cities-fr_FR.mo',
++		'continents-cities-fr_FR.po',
++		'fr_FR.mo',
++		'fr_FR.po',
++	);
++
++
++	/**
++	 * pass a new locale into WP_locale and reset current locale
++	 */
++	function test_WP_locale(){
++
++		global $GLOBALS;
++
++		$GLOBALS['wp_locale'] = new WP_Locale( 'fr_FR' );
++
++		$this->assertEquals( 'fr_FR', get_locale() );
++
++		$this->assertEquals( 'dimanche', $GLOBALS['wp_locale']->weekday[0] );
++
++		foreach ( self::$fr_lanf_files as $file ) {
++			$this->assertEquals( true, file_exists( WP_LANG_DIR . '/' . $file ) );
++		}
++
++		// remove any fr lang files
++		$this->remove_lang_files();
++	}
++
++	function remove_lang_files() {
++		foreach ( self::$fr_lanf_files as $file ) {
++			$this->unlink( WP_LANG_DIR . '/' . $file );
++		}
++	}
++}

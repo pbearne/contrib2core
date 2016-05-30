@@ -92,6 +92,14 @@ function get_plugin_data( $plugin_file, $markup = true, $translate = true ) {
 	$plugin_data['Network'] = ( 'true' == strtolower( $plugin_data['Network'] ) );
 	unset( $plugin_data['_sitewide'] );
 
+	// If no text domain is defined fall back to the plugin slug.
+	if ( ! $plugin_data['TextDomain'] ) {
+		$plugin_slug = dirname( plugin_basename( $plugin_file ) );
+		if ( '.' !== $plugin_slug && false === strpos( $plugin_slug, '/' ) ) {
+			$plugin_data['TextDomain'] = $plugin_slug;
+		}
+	}
+
 	if ( $markup || $translate ) {
 		$plugin_data = _get_plugin_data_markup_translate( $plugin_file, $plugin_data, $markup, $translate );
 	} else {
@@ -929,11 +937,11 @@ function validate_active_plugins() {
 /**
  * Validate the plugin path.
  *
- * Checks that the file exists and {@link validate_file() is valid file}.
+ * Checks that the file exists and is a valid file. See validate_file().
  *
  * @since 2.5.0
  *
- * @param string $plugin Plugin Path
+ * @param string $plugin Plugin Path.
  * @return WP_Error|int 0 on success, WP_Error on failure.
  */
 function validate_plugin($plugin) {
@@ -1815,7 +1823,9 @@ function unregister_setting( $option_group, $option_name, $sanitize_callback = '
 }
 
 /**
- * Refreshes the value of the options whitelist available via the 'whitelist_options' filter.
+ * Refreshes the value of the options whitelist available via the 'whitelist_options' hook.
+ *
+ * See the {@see 'whitelist_options'} filter.
  *
  * @since 2.7.0
  *

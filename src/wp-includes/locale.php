@@ -359,25 +359,27 @@ class WP_Locale {
 	 * Constructor which calls helper methods to set up object variables
 	 *
 	 * @since 2.1.0
+	 * @param null $lang to change the current locale
 	 */
 	public function __construct( $lang = null ) {
 		if ( null !== $lang ) {
-			print_r($lang);
 			require_once( ABSPATH . 'wp-admin/includes/translation-install.php' );
-			print_r( array_key_exists( $lang, wp_get_available_translations() ) );
-			if( ! array_key_exists( $lang, wp_get_available_translations() ) ) {
-				print_r( in_array( $lang, get_available_languages() ) );
-				if ( ! in_array( $lang, get_available_languages() ) ) {
+			global $locale;
+
+			if( ! in_array( $lang, get_available_languages() ) ) {
+				if ( array_key_exists( $lang, wp_get_available_translations() ) ) {
 					$language = wp_download_language_pack( $lang );
-					print_r($language);
 					if ( $language ) {
 						load_default_textdomain( $language );
-					} else {
-						unload_textdomain( 'default' );
+						$locale = $language;
 					}
 				}
+			} else{
+				load_default_textdomain( $lang );
+				$locale = $lang;
 			}
 		}
+
 		$this->init();
 		$this->register_globals();
 	}

@@ -20,6 +20,7 @@ define( 'WPINC', 'wp-includes' );
 // Include files required for initialization.
 require( ABSPATH . WPINC . '/load.php' );
 require( ABSPATH . WPINC . '/default-constants.php' );
+require( ABSPATH . WPINC . '/plugin.php' );
 
 /*
  * These can't be directly globalized in version.php. When updating,
@@ -70,8 +71,11 @@ timer_start();
 wp_debug_mode();
 
 // For an advanced caching plugin to use. Uses a static drop-in because you would only want one.
-if ( WP_CACHE )
+if ( WP_CACHE ) {
+	_backup_plugin_globals();
 	WP_DEBUG ? include( WP_CONTENT_DIR . '/advanced-cache.php' ) : @include( WP_CONTENT_DIR . '/advanced-cache.php' );
+	_restore_plugin_globals();
+}
 
 // Define WP_LANG_DIR if not set.
 wp_set_lang_dir();
@@ -81,7 +85,6 @@ require( ABSPATH . WPINC . '/compat.php' );
 require( ABSPATH . WPINC . '/functions.php' );
 require( ABSPATH . WPINC . '/class-wp.php' );
 require( ABSPATH . WPINC . '/class-wp-error.php' );
-require( ABSPATH . WPINC . '/plugin.php' );
 require( ABSPATH . WPINC . '/pomo/mo.php' );
 
 // Include the wpdb class and, if present, a db.php database drop-in.
@@ -99,6 +102,7 @@ require( ABSPATH . WPINC . '/default-filters.php' );
 
 // Initialize multisite if enabled.
 if ( is_multisite() ) {
+	require( ABSPATH . WPINC . '/class-wp-site-query.php' );
 	require( ABSPATH . WPINC . '/ms-blogs.php' );
 	require( ABSPATH . WPINC . '/ms-settings.php' );
 } elseif ( ! defined( 'MULTISITE' ) ) {
@@ -167,6 +171,7 @@ require( ABSPATH . WPINC . '/deprecated.php' );
 require( ABSPATH . WPINC . '/script-loader.php' );
 require( ABSPATH . WPINC . '/taxonomy.php' );
 require( ABSPATH . WPINC . '/class-wp-term.php' );
+require( ABSPATH . WPINC . '/class-wp-term-query.php' );
 require( ABSPATH . WPINC . '/class-wp-tax-query.php' );
 require( ABSPATH . WPINC . '/update.php' );
 require( ABSPATH . WPINC . '/canonical.php' );
@@ -384,10 +389,10 @@ $GLOBALS['wp']->init();
  * Fires after WordPress has finished loading but before any headers are sent.
  *
  * Most of WP is loaded at this stage, and the user is authenticated. WP continues
- * to load on the init hook that follows (e.g. widgets), and many plugins instantiate
+ * to load on the {@see 'init'} hook that follows (e.g. widgets), and many plugins instantiate
  * themselves on it for all sorts of reasons (e.g. they need a user, a taxonomy, etc.).
  *
- * If you wish to plug an action once WP is loaded, use the wp_loaded hook below.
+ * If you wish to plug an action once WP is loaded, use the {@see 'wp_loaded'} hook below.
  *
  * @since 1.5.0
  */

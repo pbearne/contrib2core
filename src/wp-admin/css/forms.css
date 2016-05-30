@@ -16,7 +16,6 @@ input[type="datetime-local"],
 input[type="email"],
 input[type="month"],
 input[type="number"],
-input[type="password"],
 input[type="search"],
 input[type="radio"],
 input[type="tel"],
@@ -45,7 +44,6 @@ input[type="datetime-local"]:focus,
 input[type="email"]:focus,
 input[type="month"]:focus,
 input[type="number"]:focus,
-input[type="password"]:focus,
 input[type="search"]:focus,
 input[type="tel"]:focus,
 input[type="text"]:focus,
@@ -972,7 +970,7 @@ table.form-table td .updated p {
 }
 
 .request-filesystem-credentials-dialog .notification-dialog {
-	top: 15%;
+	top: 10%;
 	max-height: 85%;
 }
 
@@ -1028,6 +1026,10 @@ table.form-table td .updated p {
 
 .request-filesystem-credentials-dialog label[for="ftp"] {
 	margin-right: 10px;
+}
+
+.request-filesystem-credentials-dialog #auth-keys-desc {
+	margin-bottom: 0;
 }
 
 #request-filesystem-credentials-dialog .button:not(:last-child) {

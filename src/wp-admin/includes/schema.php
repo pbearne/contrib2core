@@ -36,12 +36,7 @@ $charset_collate = $wpdb->get_charset_collate();
 function wp_get_db_schema( $scope = 'all', $blog_id = null ) {
 	global $wpdb;
 
-	$charset_collate = '';
-
-	if ( ! empty($wpdb->charset) )
-		$charset_collate = "DEFAULT CHARACTER SET $wpdb->charset";
-	if ( ! empty($wpdb->collate) )
-		$charset_collate .= " COLLATE $wpdb->collate";
+	$charset_collate = $wpdb->get_charset_collate();
 
 	if ( $blog_id && $blog_id != $wpdb->blogid )
 		$old_blog_id = $wpdb->set_blog_id( $blog_id );
@@ -1028,7 +1023,7 @@ We hope you enjoy your new site. Thanks!
 		$sitemeta['illegal_names'][] = 'blog';
 
 	/**
-	 * Filter meta for a network on creation.
+	 * Filters meta for a network on creation.
 	 *
 	 * @since 3.7.0
 	 *

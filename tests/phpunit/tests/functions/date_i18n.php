@@ -73,14 +73,7 @@ class Tests_Functions_date_i18n extends WP_UnitTestCase {
 	}
 
 
-	function test_WP_locale(){
-		global $GLOBALS;
-		$default_locale = $GLOBALS['wp_locale'];
-		$GLOBALS['wp_locale'] = new WP_Locale('fr_FR');
-print_r($GLOBALS['wp_locale']);
-		print_r($default_locale);
-		$this->assertEqualSets( $default_locale,$GLOBALS['wp_locale'] );
-	}
+	
 
 
 }

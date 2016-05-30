@@ -51,7 +51,7 @@ function check_comment($author, $email, $url, $comment, $user_ip, $user_agent, $
 		$num_links = preg_match_all( '/<a [^>]*href/i', $comment, $out );
 
 		/**
-		 * Filter the maximum number of links allowed in a comment.
+		 * Filters the maximum number of links allowed in a comment.
 		 *
 		 * @since 3.0.0
 		 *
@@ -270,7 +270,7 @@ function get_default_comment_status( $post_type = 'post', $comment_type = 'comme
 	}
 
 	/**
-	 * Filter the default comment status for the given post type.
+	 * Filters the default comment status for the given post type.
 	 *
 	 * @since 4.3.0
 	 *
@@ -323,9 +323,8 @@ function get_lastcommentmodified($timezone = 'server') {
 /**
  * The amount of comments in a post or total comments.
  *
- * A lot like {@link wp_count_comments()}, in that they both return comment
- * stats (albeit with different types). The {@link wp_count_comments()} actual
- * caches, but this function does not.
+ * A lot like wp_count_comments(), in that they both return comment stats (albeit with different types).
+ * The wp_count_comments() actually caches, but this function does not.
  *
  * @since 2.0.0
  *
@@ -505,7 +504,7 @@ function wp_set_comment_cookies($comment, $user) {
 		return;
 
 	/**
-	 * Filter the lifetime of the comment cookie in seconds.
+	 * Filters the lifetime of the comment cookie in seconds.
 	 *
 	 * @since 2.8.0
 	 *
@@ -529,7 +528,7 @@ function wp_set_comment_cookies($comment, $user) {
 function sanitize_comment_cookies() {
 	if ( isset( $_COOKIE['comment_author_' . COOKIEHASH] ) ) {
 		/**
-		 * Filter the comment author's name cookie before it is set.
+		 * Filters the comment author's name cookie before it is set.
 		 *
 		 * When this filter hook is evaluated in wp_filter_comment(),
 		 * the comment author's name string is passed.
@@ -546,7 +545,7 @@ function sanitize_comment_cookies() {
 
 	if ( isset( $_COOKIE['comment_author_email_' . COOKIEHASH] ) ) {
 		/**
-		 * Filter the comment author's email cookie before it is set.
+		 * Filters the comment author's email cookie before it is set.
 		 *
 		 * When this filter hook is evaluated in wp_filter_comment(),
 		 * the comment author's email string is passed.
@@ -563,7 +562,7 @@ function sanitize_comment_cookies() {
 
 	if ( isset( $_COOKIE['comment_author_url_' . COOKIEHASH] ) ) {
 		/**
-		 * Filter the comment author's URL cookie before it is set.
+		 * Filters the comment author's URL cookie before it is set.
 		 *
 		 * When this filter hook is evaluated in wp_filter_comment(),
 		 * the comment author's URL string is passed.
@@ -697,7 +696,7 @@ function wp_allow_comment( $commentdata ) {
 	}
 
 	/**
-	 * Filter a comment's approval status before it is set.
+	 * Filters a comment's approval status before it is set.
 	 *
 	 * @since 2.1.0
 	 *
@@ -749,7 +748,7 @@ function check_comment_flood_db( $ip, $email, $date ) {
 		$time_lastcomment = mysql2date('U', $lasttime, false);
 		$time_newcomment  = mysql2date('U', $date, false);
 		/**
-		 * Filter the comment flood status.
+		 * Filters the comment flood status.
 		 *
 		 * @since 2.1.0
 		 *
@@ -1102,7 +1101,7 @@ function wp_count_comments( $post_id = 0 ) {
 	$post_id = (int) $post_id;
 
 	/**
-	 * Filter the comments count for a given post.
+	 * Filters the comments count for a given post.
 	 *
 	 * @since 2.7.0
 	 *
@@ -1410,14 +1409,12 @@ function wp_get_comment_status($comment_id) {
  *
  * Calls hooks for comment status transitions. If the new comment status is not the same
  * as the previous comment status, then two hooks will be ran, the first is
- * 'transition_comment_status' with new status, old status, and comment data. The
- * next action called is 'comment_OLDSTATUS_to_NEWSTATUS' the NEWSTATUS is the
- * $new_status parameter and the OLDSTATUS is $old_status parameter; it has the
+ * {@see 'transition_comment_status'} with new status, old status, and comment data. The
+ * next action called is {@see comment_$old_status_to_$new_status'}. It has the
  * comment data.
  *
  * The final action will run whether or not the comment statuses are the same. The
- * action is named 'comment_NEWSTATUS_COMMENTTYPE', NEWSTATUS is from the $new_status
- * parameter and COMMENTTYPE is comment_type comment data.
+ * action is named {@see 'comment_$new_status_$comment->comment_type'}.
  *
  * @since 2.7.0
  *
@@ -1509,7 +1506,7 @@ function wp_get_current_commenter() {
 		$comment_author_url = $_COOKIE['comment_author_url_'.COOKIEHASH];
 
 	/**
-	 * Filter the current commenter's name, email, and URL.
+	 * Filters the current commenter's name, email, and URL.
 	 *
 	 * @since 3.1.0
 	 *
@@ -1630,7 +1627,7 @@ function wp_insert_comment( $commentdata ) {
 function wp_filter_comment($commentdata) {
 	if ( isset( $commentdata['user_ID'] ) ) {
 		/**
-		 * Filter the comment author's user id before it is set.
+		 * Filters the comment author's user id before it is set.
 		 *
 		 * The first time this filter is evaluated, 'user_ID' is checked
 		 * (for back-compat), followed by the standard 'user_id' value.
@@ -1646,7 +1643,7 @@ function wp_filter_comment($commentdata) {
 	}
 
 	/**
-	 * Filter the comment author's browser user agent before it is set.
+	 * Filters the comment author's browser user agent before it is set.
 	 *
 	 * @since 1.5.0
 	 *
@@ -1656,7 +1653,7 @@ function wp_filter_comment($commentdata) {
 	/** This filter is documented in wp-includes/comment.php */
 	$commentdata['comment_author'] = apply_filters( 'pre_comment_author_name', $commentdata['comment_author'] );
 	/**
-	 * Filter the comment content before it is set.
+	 * Filters the comment content before it is set.
 	 *
 	 * @since 1.5.0
 	 *
@@ -1664,7 +1661,7 @@ function wp_filter_comment($commentdata) {
 	 */
 	$commentdata['comment_content'] = apply_filters( 'pre_comment_content', $commentdata['comment_content'] );
 	/**
-	 * Filter the comment author's IP before it is set.
+	 * Filters the comment author's IP before it is set.
 	 *
 	 * @since 1.5.0
 	 *
@@ -1701,12 +1698,13 @@ function wp_throttle_comment_flood($block, $time_lastcomment, $time_newcomment) 
  * Adds a new comment to the database.
  *
  * Filters new comment to ensure that the fields are sanitized and valid before
- * inserting comment into database. Calls 'comment_post' action with comment ID
- * and whether comment is approved by WordPress. Also has 'preprocess_comment'
+ * inserting comment into database. Calls {@see 'comment_post'} action with comment ID
+ * and whether comment is approved by WordPress. Also has {@see 'preprocess_comment'}
  * filter for processing the comment data before the function handles it.
  *
- * We use REMOTE_ADDR here directly. If you are behind a proxy, you should ensure
+ * We use `REMOTE_ADDR` here directly. If you are behind a proxy, you should ensure
  * that it is properly set, such as in wp-config.php, for your environment.
+ *
  * See {@link https://core.trac.wordpress.org/ticket/9235}
  *
  * @since 1.5.0
@@ -1746,7 +1744,7 @@ function wp_new_comment( $commentdata ) {
 	$prefiltered_user_id = ( isset( $commentdata['user_id'] ) ) ? (int) $commentdata['user_id'] : 0;
 
 	/**
-	 * Filter a comment's data before it is sanitized and inserted into the database.
+	 * Filters a comment's data before it is sanitized and inserted into the database.
 	 *
 	 * @since 1.5.0
 	 *
@@ -1863,7 +1861,7 @@ function wp_new_comment_notify_postauthor( $comment_ID ) {
 	$maybe_notify = get_option( 'comments_notify' );
 
 	/**
-	 * Filter whether to send the post author new comment notification emails,
+	 * Filters whether to send the post author new comment notification emails,
 	 * overriding the site setting.
 	 *
 	 * @since 4.4.0
@@ -1892,7 +1890,7 @@ function wp_new_comment_notify_postauthor( $comment_ID ) {
 /**
  * Sets the status of a comment.
  *
- * The 'wp_set_comment_status' action is called after the comment is handled.
+ * The {@see 'wp_set_comment_status'} action is called after the comment is handled.
  * If the comment status is not in the list, then false is returned.
  *
  * @since 1.0.0
@@ -1999,7 +1997,7 @@ function wp_update_comment($commentarr) {
 	$data = wp_unslash( $commentarr );
 
 	/**
-	 * Filter the comment content before it is updated in the database.
+	 * Filters the comment content before it is updated in the database.
 	 *
 	 * @since 1.5.0
 	 *
@@ -2422,7 +2420,7 @@ function pingback($content, $post_ID) {
 			$client = new WP_HTTP_IXR_Client($pingback_server_url);
 			$client->timeout = 3;
 			/**
-			 * Filter the user agent sent when pinging-back a URL.
+			 * Filters the user agent sent when pinging-back a URL.
 			 *
 			 * @since 2.9.0
 			 *
@@ -2652,7 +2650,7 @@ function _close_comments_for_old_posts( $posts, $query ) {
 		return $posts;
 
 	/**
-	 * Filter the list of post types to automatically close comments for.
+	 * Filters the list of post types to automatically close comments for.
 	 *
 	 * @since 3.2.0
 	 *

@@ -670,7 +670,7 @@ class wpdb {
 	}
 
 	/**
-	 * PHP5 style magic getter, used to lazy-load expensive data.
+	 * Makes private properties readable for backward compatibility.
 	 *
 	 * @since 3.5.0
 	 *
@@ -685,7 +685,7 @@ class wpdb {
 	}
 
 	/**
-	 * Magic function, for backward compatibility.
+	 * Makes private properties settable for backward compatibility.
 	 *
 	 * @since 3.5.0
 	 *
@@ -705,7 +705,7 @@ class wpdb {
 	}
 
 	/**
-	 * Magic function, for backward compatibility.
+	 * Makes private properties check-able for backward compatibility.
 	 *
 	 * @since 3.5.0
 	 *
@@ -718,7 +718,7 @@ class wpdb {
 	}
 
 	/**
-	 * Magic function, for backward compatibility.
+	 * Makes private properties un-settable for backward compatibility.
 	 *
 	 * @since 3.5.0
 	 *
@@ -757,8 +757,18 @@ class wpdb {
 			$this->charset = 'utf8mb4';
 		}
 
-		if ( 'utf8mb4' === $this->charset && ( ! $this->collate || stripos( $this->collate, 'utf8_' ) === 0 ) ) {
-			$this->collate = 'utf8mb4_unicode_ci';
+		if ( 'utf8mb4' === $this->charset ) {
+			// _general_ is outdated, so we can upgrade it to _unicode_, instead.
+			if ( ! $this->collate || 'utf8_general_ci' === $this->collate ) {
+				$this->collate = 'utf8mb4_unicode_ci';
+			} else {
+				$this->collate = str_replace( 'utf8_', 'utf8mb4_', $this->collate );
+			}
+		}
+
+		// _unicode_520_ is a better collation, we should use that when it's available.
+		if ( $this->has_cap( 'utf8mb4_520' ) && 'utf8mb4_unicode_ci' === $this->collate ) {
+			$this->collate = 'utf8mb4_unicode_520_ci';
 		}
 	}
 
@@ -839,7 +849,7 @@ class wpdb {
 		$modes = array_change_key_case( $modes, CASE_UPPER );
 
 		/**
-		 * Filter the list of incompatible SQL modes to exclude.
+		 * Filters the list of incompatible SQL modes to exclude.
 		 *
 		 * @since 3.9.0
 		 *
@@ -1574,10 +1584,10 @@ class wpdb {
 	}
 
 	/**
-	 * Check that the connection to the database is still up. If not, try to reconnect.
+	 * Checks that the connection to the database is still up. If not, try to reconnect.
 	 *
 	 * If this function is unable to reconnect, it will forcibly die, or if after the
-	 * the template_redirect hook has been fired, return false instead.
+	 * the {@see 'template_redirect'} hook has been fired, return false instead.
 	 *
 	 * If $allow_bail is false, the lack of database connection will need
 	 * to be handled manually.
@@ -1679,7 +1689,7 @@ class wpdb {
 		}
 
 		/**
-		 * Filter the database query.
+		 * Filters the database query.
 		 *
 		 * Some queries are made before the plugins have been loaded,
 		 * and thus cannot be filtered with this method.
@@ -1709,18 +1719,28 @@ class wpdb {
 
 		$this->check_current_query = true;
 
-		// Keep track of the last query for debug..
+		// Keep track of the last query for debug.
 		$this->last_query = $query;
 
 		$this->_do_query( $query );
 
-		// MySQL server has gone away, try to reconnect
+		// MySQL server has gone away, try to reconnect.
 		$mysql_errno = 0;
 		if ( ! empty( $this->dbh ) ) {
 			if ( $this->use_mysqli ) {
-				$mysql_errno = mysqli_errno( $this->dbh );
+				if ( $this->dbh instanceof mysqli ) {
+					$mysql_errno = mysqli_errno( $this->dbh );
+				} else {
+					// $dbh is defined, but isn't a real connection.
+					// Something has gone horribly wrong, let's try a reconnect.
+					$mysql_errno = 2006;
+				}
 			} else {
-				$mysql_errno = mysql_errno( $this->dbh );
+				if ( is_resource( $this->dbh ) ) {
+					$mysql_errno = mysql_errno( $this->dbh );
+				} else {
+					$mysql_errno = 2006;
+				}
 			}
 		}
 
@@ -1733,11 +1753,19 @@ class wpdb {
 			}
 		}
 
-		// If there is an error then take note of it..
+		// If there is an error then take note of it.
 		if ( $this->use_mysqli ) {
-			$this->last_error = mysqli_error( $this->dbh );
+			if ( $this->dbh instanceof mysqli ) {
+				$this->last_error = mysqli_error( $this->dbh );
+			} else {
+				$this->last_error = __( 'Unable to retrieve the error message from MySQL' );
+			}
 		} else {
-			$this->last_error = mysql_error( $this->dbh );
+			if ( is_resource( $this->dbh ) ) {
+				$this->last_error = mysql_error( $this->dbh );
+			} else {
+				$this->last_error = __( 'Unable to retrieve the error message from MySQL' );
+			}
 		}
 
 		if ( $this->last_error ) {
@@ -2372,7 +2400,7 @@ class wpdb {
 		$tablekey = strtolower( $table );
 
 		/**
-		 * Filter the table charset value before the DB is checked.
+		 * Filters the table charset value before the DB is checked.
 		 *
 		 * Passing a non-null value to the filter will effectively short-circuit
 		 * checking the DB for the charset, returning that value instead.
@@ -2476,7 +2504,7 @@ class wpdb {
 		$columnkey = strtolower( $column );
 
 		/**
-		 * Filter the column charset value before the DB is checked.
+		 * Filters the column charset value before the DB is checked.
 		 *
 		 * Passing a non-null value to the filter will short-circuit
 		 * checking the DB for the charset, returning that value instead.
@@ -3188,6 +3216,7 @@ class wpdb {
 	 *
 	 * @since 2.7.0
 	 * @since 4.1.0 Support was added for the 'utf8mb4' feature.
+	 * @since 4.6.0 Support was added for the 'utf8mb4_520' feature.
 	 *
 	 * @see wpdb::db_version()
 	 *
@@ -3226,6 +3255,8 @@ class wpdb {
 				} else {
 					return version_compare( $client_version, '5.5.3', '>=' );
 				}
+			case 'utf8mb4_520' :  // @since 4.6.0
+				return version_compare( $version, '5.6', '>=' );
 		}
 
 		return false;

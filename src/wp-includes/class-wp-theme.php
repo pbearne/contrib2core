@@ -170,7 +170,7 @@ final class WP_Theme implements ArrayAccess {
 	/**
 	 * Flag for whether the themes cache bucket should be persistently cached.
 	 *
-	 * Default is false. Can be set with the wp_cache_themes_persistently filter.
+	 * Default is false. Can be set with the {@see 'wp_cache_themes_persistently'} filter.
 	 *
 	 * @static
 	 * @access private
@@ -920,7 +920,7 @@ final class WP_Theme implements ArrayAccess {
 	 *
 	 * This is typically the absolute URL to wp-content/themes. This forms the basis
 	 * for all other URLs returned by WP_Theme, so we pass it to the public function
-	 * get_theme_root_uri() and allow it to run the theme_root_uri filter.
+	 * get_theme_root_uri() and allow it to run the {@see 'theme_root_uri'} filter.
 	 *
 	 * @since 3.4.0
 	 * @access public
@@ -1031,7 +1031,7 @@ final class WP_Theme implements ArrayAccess {
 			$page_templates += $this->parent()->get_page_templates( $post );
 
 		/**
-		 * Filter list of page templates for a theme.
+		 * Filters list of page templates for a theme.
 		 *
 		 * @since 3.9.0
 		 * @since 4.4.0 Converted to allow complete control over the `$page_templates` array.
@@ -1192,7 +1192,7 @@ final class WP_Theme implements ArrayAccess {
 	 */
 	public static function get_allowed( $blog_id = null ) {
 		/**
-		 * Filter the array of themes allowed on the network.
+		 * Filters the array of themes allowed on the network.
 		 *
 		 * Site is provided as context so that a list of network allowed themes can
 		 * be filtered further.
@@ -1225,7 +1225,7 @@ final class WP_Theme implements ArrayAccess {
 		}
 
 		/**
-		 * Filter the array of themes allowed on the network.
+		 * Filters the array of themes allowed on the network.
 		 *
 		 * @since MU
 		 *
@@ -1257,7 +1257,7 @@ final class WP_Theme implements ArrayAccess {
 
 		if ( isset( $allowed_themes[ $blog_id ] ) ) {
 			/**
-			 * Filter the array of themes allowed on the site.
+			 * Filters the array of themes allowed on the site.
 			 *
 			 * @since 4.5.0
 			 *

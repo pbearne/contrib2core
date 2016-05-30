@@ -52,7 +52,7 @@ class WP_Upgrader {
 	 *
 	 * @since 2.8.0
 	 * @access public
-	 * @var string $strings
+	 * @var array $strings
 	 */
 	public $strings = array();
 
@@ -249,7 +249,7 @@ class WP_Upgrader {
 	public function download_package( $package ) {
 
 		/**
-		 * Filter whether to return the package.
+		 * Filters whether to return the package.
 		 *
 		 * @since 3.7.0
 		 * @access public
@@ -449,7 +449,7 @@ class WP_Upgrader {
 		$this->skin->feedback( 'installing_package' );
 
 		/**
-		 * Filter the install response before the installation has started.
+		 * Filters the install response before the installation has started.
 		 *
 		 * Returning a truthy value, or one that could be evaluated as a WP_Error
 		 * will effectively short-circuit the installation, returning that value
@@ -483,7 +483,7 @@ class WP_Upgrader {
 		}
 
 		/**
-		 * Filter the source file location for the upgrade package.
+		 * Filters the source file location for the upgrade package.
 		 *
 		 * @since 2.8.0
 		 * @since 4.4.0 The $hook_extra parameter became available.
@@ -529,7 +529,7 @@ class WP_Upgrader {
 			$removed = $this->clear_destination( $remote_destination );
 
 			/**
-			 * Filter whether the upgrader cleared the destination.
+			 * Filters whether the upgrader cleared the destination.
 			 *
 			 * @since 2.8.0
 			 *
@@ -581,7 +581,7 @@ class WP_Upgrader {
 		$this->result = compact( 'source', 'source_files', 'destination', 'destination_name', 'local_destination', 'remote_destination', 'clear_destination' );
 
 		/**
-		 * Filter the install response after the installation has finished.
+		 * Filters the install response after the installation has finished.
 		 *
 		 * @since 2.8.0
 		 *
@@ -649,7 +649,9 @@ class WP_Upgrader {
 		$options = wp_parse_args( $options, $defaults );
 
 		/**
-		 * Filter the package options before running an update.
+		 * Filters the package options before running an update.
+		 *
+		 * See also {@see 'upgrader_process_complete'}.
 		 *
 		 * @since 4.3.0
 		 *
@@ -662,7 +664,18 @@ class WP_Upgrader {
 		 *     @type bool   $clear_working               Clear the working resource.
 		 *     @type bool   $abort_if_destination_exists Abort if the Destination directory exists.
 		 *     @type bool   $is_multi                    Whether the upgrader is running multiple times.
-		 *     @type array  $hook_extra                  Extra hook arguments.
+		 *     @type array  $hook_extra {
+		 *         Extra hook arguments.
+		 *
+		 *         @type string $action               Type of action. Default 'update'.
+		 *         @type string $type                 Type of update process. Accepts 'plugin', 'theme', or 'core'.
+		 *         @type bool   $bulk                 Whether the update process is a bulk update. Default true.
+		 *         @type string $plugin               The base plugin path from the plugins directory.
+		 *         @type string $theme                The stylesheet or template name of the theme.
+		 *         @type string $language_update_type The language pack update type. Accepts 'plugin', 'theme',
+		 *                                            or 'core'.
+		 *         @type object $language_update      The language pack update offer.
+		 *     }
 		 * }
 		 */
 		$options = apply_filters( 'upgrader_package_options', $options );
@@ -745,21 +758,25 @@ class WP_Upgrader {
 			/**
 			 * Fires when the upgrader process is complete.
 			 *
+			 * See also {@see 'upgrader_package_options'}.
+			 *
 			 * @since 3.6.0
 			 * @since 3.7.0 Added to WP_Upgrader::run().
 			 *
 			 * @param WP_Upgrader $this WP_Upgrader instance. In other contexts, $this, might be a
 			 *                          Theme_Upgrader, Plugin_Upgrader or Core_Upgrade instance.
-			 * @param array       $data {
+			 * @param array       $hook_extra {
 			 *     Array of bulk item update data.
 			 *
-			 *     @type string $action   Type of action. Default 'update'.
-			 *     @type string $type     Type of update process. Accepts 'plugin', 'theme', or 'core'.
-			 *     @type bool   $bulk     Whether the update process is a bulk update. Default true.
-			 *     @type array  $packages Array of plugin, theme, or core packages to update.
+			 *     @type string $action  Type of action. Default 'update'.
+			 *     @type string $type    Type of update process. Accepts 'plugin', 'theme', or 'core'.
+			 *     @type bool   $bulk    Whether the update process is a bulk update. Default true.
+			 *     @type array  $plugins Array of the basename paths of the plugins' main files.
+			 *     @type array  $themes  The theme slugs.
 			 * }
 			 */
 			do_action( 'upgrader_process_complete', $this, $options['hook_extra'] );
+
 			$this->skin->footer();
 		}
 

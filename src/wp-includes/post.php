@@ -13,6 +13,8 @@
 /**
  * Creates the initial post types when 'init' action is fired.
  *
+ * See {@see 'init'}.
+ *
  * @since 2.9.0
  */
 function create_initial_post_types() {
@@ -197,7 +199,7 @@ function get_attached_file( $attachment_id, $unfiltered = false ) {
 	}
 
 	/**
-	 * Filter the attached file based on the given ID.
+	 * Filters the attached file based on the given ID.
 	 *
 	 * @since 2.1.0
 	 *
@@ -224,7 +226,7 @@ function update_attached_file( $attachment_id, $file ) {
 		return false;
 
 	/**
-	 * Filter the path to the attached file to update.
+	 * Filters the path to the attached file to update.
 	 *
 	 * @since 2.1.0
 	 *
@@ -259,7 +261,7 @@ function _wp_relative_upload_path( $path ) {
 	}
 
 	/**
-	 * Filter the relative path to an uploaded file.
+	 * Filters the relative path to an uploaded file.
 	 *
 	 * @since 2.9.0
 	 *
@@ -286,11 +288,10 @@ function _wp_relative_upload_path( $path ) {
  * example of what is possible.
  *
  * The arguments listed as defaults are for this function and also of the
- * {@link get_posts()} function. The arguments are combined with the
- * get_children defaults and are then passed to the {@link get_posts()}
- * function, which accepts additional arguments. You can replace the defaults in
- * this function, listed below and the additional arguments listed in the
- * {@link get_posts()} function.
+ * get_posts() function. The arguments are combined with the get_children defaults
+ * and are then passed to the get_posts() function, which accepts additional arguments.
+ * You can replace the defaults in this function, listed below and the additional
+ * arguments listed in the get_posts() function.
  *
  * The 'post_parent' is the most important argument and important attention
  * needs to be paid to the $args parameter. If you pass either an object or an
@@ -412,8 +413,8 @@ function get_extended( $post ) {
 /**
  * Retrieves post data given a post ID or post object.
  *
- * See {@link sanitize_post()} for optional $filter values. Also, the parameter
- * $post, must be given as a variable, since it is passed by reference.
+ * See sanitize_post() for optional $filter values. Also, the parameter
+ * `$post`, must be given as a variable, since it is passed by reference.
  *
  * @since 1.5.1
  *
@@ -578,7 +579,7 @@ function get_post_status( $ID = '' ) {
 	}
 
 	/**
-	 * Filter the post status.
+	 * Filters the post status.
 	 *
 	 * @since 4.4.0
 	 *
@@ -1007,7 +1008,7 @@ function register_post_type( $post_type, $args = array() ) {
 	$args      = wp_parse_args( $args );
 
 	/**
-	 * Filter the arguments for registering a post type.
+	 * Filters the arguments for registering a post type.
 	 *
 	 * @since 4.4.0
 	 *
@@ -1476,7 +1477,7 @@ function get_post_type_labels( $post_type_object ) {
 	$default_labels = clone $labels;
 
 	/**
-	 * Filter the labels of a specific post type.
+	 * Filters the labels of a specific post type.
 	 *
 	 * The dynamic portion of the hook name, `$post_type`, refers to
 	 * the post type slug.
@@ -2039,7 +2040,7 @@ function sanitize_post_field( $field, $value, $post_id, $context = 'display' ) {
 		if ( $prefixed ) {
 
 			/**
-			 * Filter the value of a specific post field to edit.
+			 * Filters the value of a specific post field to edit.
 			 *
 			 * The dynamic portion of the hook name, `$field`, refers to the post
 			 * field name.
@@ -2052,7 +2053,7 @@ function sanitize_post_field( $field, $value, $post_id, $context = 'display' ) {
 			$value = apply_filters( "edit_{$field}", $value, $post_id );
 
 			/**
-			 * Filter the value of a specific post field to edit.
+			 * Filters the value of a specific post field to edit.
 			 *
 			 * The dynamic portion of the hook name, `$field_no_prefix`, refers to
 			 * the post field name.
@@ -2079,7 +2080,7 @@ function sanitize_post_field( $field, $value, $post_id, $context = 'display' ) {
 		if ( $prefixed ) {
 
 			/**
-			 * Filter the value of a specific post field before saving.
+			 * Filters the value of a specific post field before saving.
 			 *
 			 * The dynamic portion of the hook name, `$field`, refers to the post
 			 * field name.
@@ -2091,7 +2092,7 @@ function sanitize_post_field( $field, $value, $post_id, $context = 'display' ) {
 			$value = apply_filters( "pre_{$field}", $value );
 
 			/**
-			 * Filter the value of a specific field before saving.
+			 * Filters the value of a specific field before saving.
 			 *
 			 * The dynamic portion of the hook name, `$field_no_prefix`, refers
 			 * to the post field name.
@@ -2105,7 +2106,7 @@ function sanitize_post_field( $field, $value, $post_id, $context = 'display' ) {
 			$value = apply_filters( "pre_post_{$field}", $value );
 
 			/**
-			 * Filter the value of a specific post field before saving.
+			 * Filters the value of a specific post field before saving.
 			 *
 			 * The dynamic portion of the hook name, `$field`, refers to the post
 			 * field name.
@@ -2122,7 +2123,7 @@ function sanitize_post_field( $field, $value, $post_id, $context = 'display' ) {
 		if ( $prefixed ) {
 
 			/**
-			 * Filter the value of a specific post field for display.
+			 * Filters the value of a specific post field for display.
 			 *
 			 * The dynamic portion of the hook name, `$field`, refers to the post
 			 * field name.
@@ -2342,7 +2343,7 @@ function get_post_mime_types() {
 	);
 
 	/**
-	 * Filter the default list of post mime types.
+	 * Filters the default list of post mime types.
 	 *
 	 * @since 2.5.0
 	 *
@@ -2487,7 +2488,7 @@ function wp_delete_post( $postid = 0, $force_delete = false ) {
 		return wp_delete_attachment( $postid, $force_delete );
 
 	/**
-	 * Filter whether a post deletion should take place.
+	 * Filters whether a post deletion should take place.
 	 *
 	 * @since 4.4.0
 	 *
@@ -2870,7 +2871,7 @@ function wp_get_post_categories( $post_id = 0, $args = array() ) {
  *
  * There is only one default for this function, called 'fields' and by default
  * is set to 'all'. There are other defaults that can be overridden in
- * {@link wp_get_object_terms()}.
+ * wp_get_object_terms().
  *
  * @since 2.3.0
  *
@@ -2888,14 +2889,14 @@ function wp_get_post_tags( $post_id = 0, $args = array() ) {
  *
  * There is only one default for this function, called 'fields' and by default
  * is set to 'all'. There are other defaults that can be overridden in
- * {@link wp_get_object_terms()}.
+ * wp_get_object_terms().
  *
  * @since 2.8.0
  *
  * @param int    $post_id  Optional. The Post ID. Does not default to the ID of the
  *                         global $post. Default 0.
  * @param string $taxonomy Optional. The taxonomy for which to retrieve terms. Default 'post_tag'.
- * @param array  $args     Optional. {@link wp_get_object_terms()} arguments. Default empty array.
+ * @param array  $args     Optional. wp_get_object_terms() arguments. Default empty array.
  * @return array|WP_Error  List of post terms or empty array if no terms were found. WP_Error object
  *                         if `$taxonomy` doesn't exist.
  */
@@ -3087,7 +3088,7 @@ function wp_insert_post( $postarr, $wp_error = false ) {
 		&& post_type_supports( $post_type, 'excerpt' );
 
 	/**
-	 * Filter whether the post should be considered "empty".
+	 * Filters whether the post should be considered "empty".
 	 *
 	 * The post is considered "empty" if both:
 	 * 1. The post type supports the title, editor, and excerpt fields
@@ -3255,7 +3256,7 @@ function wp_insert_post( $postarr, $wp_error = false ) {
 	}
 
 	/**
-	 * Filter the post parent -- used to check for and prevent hierarchy loops.
+	 * Filters the post parent -- used to check for and prevent hierarchy loops.
 	 *
 	 * @since 3.1.0
 	 *
@@ -3309,7 +3310,7 @@ function wp_insert_post( $postarr, $wp_error = false ) {
 
 	if ( 'attachment' === $post_type ) {
 		/**
-		 * Filter attachment post data before it is updated in or added to the database.
+		 * Filters attachment post data before it is updated in or added to the database.
 		 *
 		 * @since 3.9.0
 		 *
@@ -3319,7 +3320,7 @@ function wp_insert_post( $postarr, $wp_error = false ) {
 		$data = apply_filters( 'wp_insert_attachment_data', $data, $postarr );
 	} else {
 		/**
-		 * Filter slashed post data just before it is inserted into the database.
+		 * Filters slashed post data just before it is inserted into the database.
 		 *
 		 * @since 2.7.0
 		 *
@@ -3717,7 +3718,7 @@ function wp_unique_post_slug( $slug, $post_ID, $post_status, $post_type, $post_p
 		$post_name_check = $wpdb->get_var( $wpdb->prepare( $check_sql, $slug, $post_ID ) );
 
 		/**
-		 * Filter whether the post slug would make a bad attachment slug.
+		 * Filters whether the post slug would make a bad attachment slug.
 		 *
 		 * @since 3.1.0
 		 *
@@ -3745,7 +3746,7 @@ function wp_unique_post_slug( $slug, $post_ID, $post_status, $post_type, $post_p
 		$post_name_check = $wpdb->get_var( $wpdb->prepare( $check_sql, $slug, $post_type, $post_ID, $post_parent ) );
 
 		/**
-		 * Filter whether the post slug would make a bad hierarchical post slug.
+		 * Filters whether the post slug would make a bad hierarchical post slug.
 		 *
 		 * @since 3.1.0
 		 *
@@ -3791,7 +3792,7 @@ function wp_unique_post_slug( $slug, $post_ID, $post_status, $post_type, $post_p
 		}
 
 		/**
-		 * Filter whether the post slug would be bad as a flat slug.
+		 * Filters whether the post slug would be bad as a flat slug.
 		 *
 		 * @since 3.1.0
 		 *
@@ -3811,7 +3812,7 @@ function wp_unique_post_slug( $slug, $post_ID, $post_status, $post_type, $post_p
 	}
 
 	/**
-	 * Filter the unique post slug.
+	 * Filters the unique post slug.
 	 *
 	 * @since 3.3.0
 	 *
@@ -3967,8 +3968,8 @@ function wp_set_post_categories( $post_ID = 0, $post_categories = array(), $appe
  * When a post is saved, the post status is "transitioned" from one status to another,
  * though this does not always mean the status has actually changed before and after
  * the save. This function fires a number of action hooks related to that transition:
- * the generic 'transition_post_status' action, as well as the dynamic hooks
- * `"{$old_status}_to_{$new_status}"` and `"{$new_status}_{$post->post_type}"`. Note
+ * the generic {@see 'transition_post_status'} action, as well as the dynamic hooks
+ * {@see '$old_status_to_$new_status'} and {@see '$new_status_$post->post_type'}. Note
  * that the function does not transition the post object in the database.
  *
  * For instance: When publishing a post for the first time, the post status may transition
@@ -4052,7 +4053,7 @@ function add_ping( $post_id, $uri ) {
 	$new = implode("\n", $pung);
 
 	/**
-	 * Filter the new ping URL to add for the given post.
+	 * Filters the new ping URL to add for the given post.
 	 *
 	 * @since 2.0.0
 	 *
@@ -4089,7 +4090,7 @@ function get_enclosed( $post_id ) {
 	}
 
 	/**
-	 * Filter the list of enclosures already enclosed for the given post.
+	 * Filters the list of enclosures already enclosed for the given post.
 	 *
 	 * @since 2.0.0
 	 *
@@ -4116,7 +4117,7 @@ function get_pung( $post_id ) {
 	$pung = preg_split('/\s/', $pung);
 
 	/**
-	 * Filter the list of already-pinged URLs for the given post.
+	 * Filters the list of already-pinged URLs for the given post.
 	 *
 	 * @since 2.0.0
 	 *
@@ -4142,7 +4143,7 @@ function get_to_ping( $post_id ) {
 	$to_ping = preg_split('/\s/', $to_ping, -1, PREG_SPLIT_NO_EMPTY);
 
 	/**
-	 * Filter the list of URLs yet to ping for the given post.
+	 * Filters the list of URLs yet to ping for the given post.
 	 *
 	 * @since 2.0.0
 	 *
@@ -4239,6 +4240,24 @@ function get_page( $page, $output = OBJECT, $filter = 'raw') {
 function get_page_by_path( $page_path, $output = OBJECT, $post_type = 'page' ) {
 	global $wpdb;
 
+	$last_changed = wp_cache_get( 'last_changed', 'posts' );
+	if ( false === $last_changed ) {
+		$last_changed = microtime();
+		wp_cache_set( 'last_changed', $last_changed, 'posts' );
+	}
+
+	$hash = md5( $page_path . serialize( $post_type ) );
+	$cache_key = "get_page_by_path:$hash:$last_changed";
+	$cached = wp_cache_get( $cache_key, 'posts' );
+	if ( false !== $cached ) {
+		// Special case: '0' is a bad `$page_path`.
+		if ( '0' === $cached || 0 === $cached ) {
+			return;
+		} else {
+			return get_post( $cached, $output );
+		}
+	}
+
 	$page_path = rawurlencode(urldecode($page_path));
 	$page_path = str_replace('%2F', '/', $page_path);
 	$page_path = str_replace('%20', ' ', $page_path);
@@ -4292,6 +4311,9 @@ function get_page_by_path( $page_path, $output = OBJECT, $post_type = 'page' ) {
 			}
 		}
 	}
+
+	// We cache misses as well as hits.
+	wp_cache_set( $cache_key, $foundid, 'posts' );
 
 	if ( $foundid ) {
 		return get_post( $foundid, $output );
@@ -4459,7 +4481,7 @@ function get_page_uri( $page = 0 ) {
 	}
 
 	/**
-	 * Filter the URI for a page.
+	 * Filters the URI for a page.
 	 *
 	 * @since 4.4.0
 	 *
@@ -4754,7 +4776,7 @@ function get_pages( $args = array() ) {
 	$pages = array_map( 'get_post', $pages );
 
 	/**
-	 * Filter the retrieved list of pages.
+	 * Filters the retrieved list of pages.
 	 *
 	 * @since 2.1.0
 	 *
@@ -4965,7 +4987,7 @@ function wp_get_attachment_metadata( $post_id = 0, $unfiltered = false ) {
 		return $data;
 
 	/**
-	 * Filter the attachment meta data.
+	 * Filters the attachment meta data.
 	 *
 	 * @since 2.1.0
 	 *
@@ -4991,7 +5013,7 @@ function wp_update_attachment_metadata( $post_id, $data ) {
 		return false;
 
 	/**
-	 * Filter the updated attachment meta data.
+	 * Filters the updated attachment meta data.
 	 *
 	 * @since 2.1.0
 	 *
@@ -5055,7 +5077,7 @@ function wp_get_attachment_url( $post_id = 0 ) {
 	}
 
 	/**
-	 * Filter the attachment URL.
+	 * Filters the attachment URL.
 	 *
 	 * @since 2.1.0
 	 *
@@ -5089,7 +5111,7 @@ function wp_get_attachment_thumb_file( $post_id = 0 ) {
 
 	if ( !empty($imagedata['thumb']) && ($thumbfile = str_replace(basename($file), $imagedata['thumb'], $file)) && file_exists($thumbfile) ) {
 		/**
-		 * Filter the attachment thumbnail file path.
+		 * Filters the attachment thumbnail file path.
 		 *
 		 * @since 2.1.0
 		 *
@@ -5126,7 +5148,7 @@ function wp_get_attachment_thumb_url( $post_id = 0 ) {
 	$url = str_replace(basename($url), basename($thumb), $url);
 
 	/**
-	 * Filter the attachment thumbnail URL.
+	 * Filters the attachment thumbnail URL.
 	 *
 	 * @since 2.1.0
 	 *
@@ -5237,7 +5259,7 @@ function wp_mime_type_icon( $mime = 0 ) {
 
 		if ( !is_array($icon_files) ) {
 			/**
-			 * Filter the icon directory path.
+			 * Filters the icon directory path.
 			 *
 			 * @since 2.0.0
 			 *
@@ -5246,7 +5268,7 @@ function wp_mime_type_icon( $mime = 0 ) {
 			$icon_dir = apply_filters( 'icon_dir', ABSPATH . WPINC . '/images/media' );
 
 			/**
-			 * Filter the icon directory URI.
+			 * Filters the icon directory URI.
 			 *
 			 * @since 2.0.0
 			 *
@@ -5255,7 +5277,7 @@ function wp_mime_type_icon( $mime = 0 ) {
 			$icon_dir_uri = apply_filters( 'icon_dir_uri', includes_url( 'images/media' ) );
 
 			/**
-			 * Filter the list of icon directory URIs.
+			 * Filters the list of icon directory URIs.
 			 *
 			 * @since 2.5.0
 			 *
@@ -5315,7 +5337,7 @@ function wp_mime_type_icon( $mime = 0 ) {
 	}
 
 	/**
-	 * Filter the mime type icon.
+	 * Filters the mime type icon.
 	 *
 	 * @since 2.1.0
 	 *
@@ -5422,7 +5444,7 @@ function get_posts_by_author_sql( $post_type, $full = true, $post_author = null,
 		}
 
 		/**
-		 * Filter the capability to read private posts for a custom post type
+		 * Filters the capability to read private posts for a custom post type
 		 * when generating SQL for getting posts by author.
 		 *
 		 * @since 2.2.0
@@ -5491,7 +5513,7 @@ function get_posts_by_author_sql( $post_type, $full = true, $post_author = null,
  */
 function get_lastpostdate( $timezone = 'server', $post_type = 'any' ) {
 	/**
-	 * Filter the date the last post was published.
+	 * Filters the date the last post was published.
 	 *
 	 * @since 2.3.0
 	 *
@@ -5543,7 +5565,7 @@ function get_lastpostmodified( $timezone = 'server', $post_type = 'any' ) {
 	}
 
 	/**
-	 * Filter the date the last post was modified.
+	 * Filters the date the last post was modified.
 	 *
 	 * @since 2.3.0
 	 *
@@ -5914,7 +5936,7 @@ function wp_get_post_parent_id( $post_ID ) {
  * Check the given subset of the post hierarchy for hierarchy loops.
  *
  * Prevents loops from forming and breaks those that it finds. Attached
- * to the 'wp_insert_post_parent' filter.
+ * to the {@see 'wp_insert_post_parent'} filter.
  *
  * @since 3.1.0
  *
