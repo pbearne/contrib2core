@@ -43,5 +43,4 @@
 # Ignore other .gitignore files to allow for personal customizations
 #.gitignore
 /.idea
-/.svn
 /patches
