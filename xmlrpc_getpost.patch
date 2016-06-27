@@ -1,0 +1,462 @@
+Index: src/wp-includes/functions.php
+===================================================================
+--- src/wp-includes/functions.php	(revision 37597)
++++ src/wp-includes/functions.php	(working copy)
+@@ -91,10 +91,12 @@
+ 	$i = $unixtimestamp;
+ 
+ 	if ( false === $i ) {
+-		if ( ! $gmt )
++		if ( ! $gmt ){
+ 			$i = current_time( 'timestamp' );
+-		else
++		} else {
+ 			$i = time();
++		}
++
+ 		// we should not let date() interfere with our
+ 		// specially computed timestamp
+ 		$gmt = true;
+@@ -115,15 +117,19 @@
+ 		$dateweekday_abbrev = $wp_locale->get_weekday_abbrev( $dateweekday );
+ 		$datemeridiem = $wp_locale->get_meridiem( $datefunc( 'a', $i ) );
+ 		$datemeridiem_capital = $wp_locale->get_meridiem( $datefunc( 'A', $i ) );
++
+ 		$dateformatstring = ' '.$dateformatstring;
+-		$dateformatstring = preg_replace( "/([^\\\])D/", "\\1" . backslashit( $dateweekday_abbrev ), $dateformatstring );
+-		$dateformatstring = preg_replace( "/([^\\\])F/", "\\1" . backslashit( $datemonth ), $dateformatstring );
+-		$dateformatstring = preg_replace( "/([^\\\])l/", "\\1" . backslashit( $dateweekday ), $dateformatstring );
+-		$dateformatstring = preg_replace( "/([^\\\])M/", "\\1" . backslashit( $datemonth_abbrev ), $dateformatstring );
+-		$dateformatstring = preg_replace( "/([^\\\])a/", "\\1" . backslashit( $datemeridiem ), $dateformatstring );
+-		$dateformatstring = preg_replace( "/([^\\\])A/", "\\1" . backslashit( $datemeridiem_capital ), $dateformatstring );
++		$dateformatstring = preg_replace( '/([^\\\])D/', '\\1' . backslashit( $dateweekday_abbrev ), $dateformatstring );
++		$dateformatstring = preg_replace( '/([^\\\])F/', '\\1' . backslashit( $datemonth ), $dateformatstring );
++		$dateformatstring = preg_replace( '/([^\\\])l/', '\\1' . backslashit( $dateweekday ), $dateformatstring );
++		$dateformatstring = preg_replace( '/([^\\\])M/', '\\1' . backslashit( $datemonth_abbrev ), $dateformatstring );
++		$dateformatstring = preg_replace( '/([^\\\])a/', '\\1' . backslashit( $datemeridiem ), $dateformatstring );
++		$dateformatstring = preg_replace( '/([^\\\])A/', '\\1' . backslashit( $datemeridiem_capital ), $dateformatstring );
+ 
+ 		$dateformatstring = substr( $dateformatstring, 1, strlen( $dateformatstring ) -1 );
++
++
++
+ 	}
+ 	$timezone_formats = array( 'P', 'I', 'O', 'T', 'Z', 'e' );
+ 	$timezone_formats_re = implode( '|', $timezone_formats );
+@@ -130,6 +136,7 @@
+ 	if ( preg_match( "/$timezone_formats_re/", $dateformatstring ) ) {
+ 		$timezone_string = get_option( 'timezone_string' );
+ 		if ( $timezone_string ) {
++			var_dump('in test ');
+ 			$timezone_object = timezone_open( $timezone_string );
+ 			$date_object = date_create( null, $timezone_object );
+ 			foreach ( $timezone_formats as $timezone_format ) {
+@@ -142,6 +149,8 @@
+ 			}
+ 		}
+ 	}
++//	$dateformatstring = str_replace( '\\\\', '\\', str_replace( '#~#~#', '\\', $dateformatstring ) );
++//	var_dump($dateformatstring);
+ 	$j = @$datefunc( $dateformatstring, $i );
+ 
+ 	/**
+@@ -219,9 +228,9 @@
+ 	global $wp_locale;
+ 
+ 	if ( isset( $wp_locale ) ) {
+-		$formatted = number_format( $number, absint( $decimals ), $wp_locale->number_format['decimal_point'], $wp_locale->number_format['thousands_sep'] );
++		$formatted = number_format( (float) $number, absint( $decimals ), $wp_locale->number_format['decimal_point'], $wp_locale->number_format['thousands_sep'] );
+ 	} else {
+-		$formatted = number_format( $number, absint( $decimals ) );
++		$formatted = number_format( (float) $number, absint( $decimals ) );
+ 	}
+ 
+ 	/**
+@@ -265,6 +274,7 @@
+ 
+ 	foreach ( $quant as $unit => $mag ) {
+ 		if ( doubleval( $bytes ) >= $mag ) {
++
+ 			return number_format_i18n( $bytes / $mag, $decimals ) . ' ' . $unit;
+ 		}
+ 	}
+@@ -277,31 +287,33 @@
+  *
+  * @since 0.71
+  *
+- * @param string     $mysqlstring   Date or datetime field type from MySQL.
++ * @param string     $date_string   in the format '%Y-%m-%d'.
+  * @param int|string $start_of_week Optional. Start of the week as an integer. Default empty string.
+  * @return array Keys are 'start' and 'end'.
+  */
+-function get_weekstartend( $mysqlstring, $start_of_week = '' ) {
+-	// MySQL string year.
+-	$my = substr( $mysqlstring, 0, 4 );
++function get_weekstartend( $date_string, $start_of_week = '' ) {
++	// Date string year.
++	$my = substr( $date_string, 0, 4 );
+ 
+-	// MySQL string month.
+-	$mm = substr( $mysqlstring, 8, 2 );
++	// Date string month.
++	$mm = substr( $date_string, 8, 2 );
+ 
+-	// MySQL string day.
+-	$md = substr( $mysqlstring, 5, 2 );
++	// Date string day.
++	$md = substr( $date_string, 5, 2 );
+ 
+-	// The timestamp for MySQL string day.
++	// The timestamp for Date string.
+ 	$day = mktime( 0, 0, 0, $md, $mm, $my );
+ 
+ 	// The day of the week from the timestamp.
+ 	$weekday = date( 'w', $day );
+ 
+-	if ( !is_numeric($start_of_week) )
++	if ( ! is_numeric($start_of_week) ){
+ 		$start_of_week = get_option( 'start_of_week' );
++	}
+ 
+-	if ( $weekday < $start_of_week )
++	if ( $weekday < $start_of_week ){
+ 		$weekday += 7;
++	}
+ 
+ 	// The most recent week start day on or before $day.
+ 	$start = $day - DAY_IN_SECONDS * ( $weekday - $start_of_week );
+@@ -320,8 +332,11 @@
+  * @return mixed Unserialized data can be any type.
+  */
+ function maybe_unserialize( $original ) {
+-	if ( is_serialized( $original ) ) // don't attempt to unserialize data that wasn't serialized going in
+-		return @unserialize( $original );
++	if ( is_serialized( $original ) ) { // don't attempt to unserialize data that wasn't serialized going in
++
++		return @unserialize( trim( $original ) );
++	}
++
+ 	return $original;
+ }
+ 
+@@ -458,7 +473,7 @@
+ function xmlrpc_getposttitle( $content ) {
+ 	global $post_default_title;
+ 	if ( preg_match( '/<title>(.+?)<\/title>/is', $content, $matchtitle ) ) {
+-		$post_title = $matchtitle[1];
++		$post_title = trim( $matchtitle[1] );
+ 	} else {
+ 		$post_title = $post_default_title;
+ 	}
+@@ -483,7 +498,7 @@
+ 	global $post_default_category;
+ 	if ( preg_match( '/<category>(.+?)<\/category>/is', $content, $matchcat ) ) {
+ 		$post_category = trim( $matchcat[1], ',' );
+-		$post_category = explode( ',', $post_category );
++		$post_category = array_unique( array_map('trim', explode( ',', $post_category ) ) );
+ 	} else {
+ 		$post_category = $post_default_category;
+ 	}
+Index: tests/phpunit/tests/functions/xmlrpc-getpostcatergory.php
+===================================================================
+--- tests/phpunit/tests/functions/xmlrpc-getpostcatergory.php	(nonexistent)
++++ tests/phpunit/tests/functions/xmlrpc-getpostcatergory.php	(working copy)
+@@ -0,0 +1,155 @@
++<?php
++
++/**
++ * Class Tests_Xmlrpc_Getpostcategory
++ * test the xmlrpc_getpostcategory function
++ */
++class Tests_Xmlrpc_GetPostCategory extends WP_UnitTestCase {
++
++	/**
++	 * setup
++	 * declare the default category needed in function
++	 */
++	function setup() {
++		global $post_default_category;
++		$post_default_category = 'post_default_category';
++	}
++
++	/**
++	 * remove global
++	 */
++	function tearDown() {
++		global $post_default_category;
++		$post_default_category = null;
++	}
++
++
++	/**
++	 * pass null
++	 */
++	function test_xmlrpc_getpostcategory_null() {
++		$this->assertEquals( 'post_default_category' , xmlrpc_getpostcategory( null ) );
++	}
++
++	/**
++	 * pass good category in test
++	 */
++	function test_xmlrpc_getpostcategory_good() {
++
++		$this->assertEquals( array( 'good_category' ) , xmlrpc_getpostcategory( '<category>good_category</category>' ) );
++	}
++
++
++	/**
++	 * pass good category in test
++	 */
++	function test_xmlrpc_getpostcategorys_good() {
++
++		$this->assertEquals( array( 'good_category1', 'good_category2', 'good_category3' ), xmlrpc_getpostcategory( '<category>good_category1, good_category2, good_category3</category>' ) );
++	}
++
++	/**
++	 * pass good category in test
++	 */
++	function test_xmlrpc_getpostcategorys_dupicate_cat() {
++
++		$this->assertEquals( array( 0 => 'good_category1', 2 => 'good_category3' ), xmlrpc_getpostcategory( '<category>good_category1, good_category1, good_category3,</category>' ) );
++	}
++
++	/**
++	 * pass good category in lot of content
++	 */
++	function test_xmlrpc_getpostcategory_good_in_post_tag() {
++
++		$this->assertEquals( array( 'good_category' ) , xmlrpc_getpostcategory( '<post><category>good_category</category><cat>fsdfsfsf</cat></post>' ) );
++	}
++	/**
++	 * missing close
++	 */
++	function test_xmlrpc_getpostcategory_bad() {
++
++		$this->assertEquals( 'post_default_category', xmlrpc_getpostcategory( '<category>good_category<category>ssssss' ) );
++	}
++
++	/**
++	 * category has to be something or default is returned
++	 */
++	function test_xmlrpc_getpostcategory_missing() {
++
++		$this->assertEquals( 'post_default_category' , xmlrpc_getpostcategory( '<category></category>' ) );
++	}
++
++	/**
++	 * return space
++	 */
++	function test_xmlrpc_getpostcategory_space() {
++
++		$this->assertEquals( array( '' ) , xmlrpc_getpostcategory( '<category> </category>' ) );
++	}
++
++	/**
++	 * nest categorys tern bad string
++	 */
++	function test_xmlrpc_getpostcategory_category() {
++
++		$this->assertEquals( array( '<category>category' ), xmlrpc_getpostcategory( '<category> <category>category</category> </category>' ) );
++
++	}
++
++	/**
++	 * inluded any tag in the category
++	 */
++	function test_xmlrpc_getpostcategory_span() {
++
++		$this->assertEquals( array( '<span>category</span>' ), xmlrpc_getpostcategory( '<category> <span>category</span> </category>' ) );
++	}
++
++
++	/**
++	 * bad opening tag
++	 */
++	function test_xmlrpc_getpostcategory_bad_open_tag() {
++
++		$this->assertEquals( 'post_default_category' , xmlrpc_getpostcategory( '<category <span>category</span> </category>' ) );
++	}
++
++	/**
++	 * bad closing tag
++	 */
++	function test_xmlrpc_getpostcategory_bad_close_tag() {
++
++		$this->assertEquals( 'post_default_category' , xmlrpc_getpostcategory( '<category>category</category dddddd>' ) );
++	}
++
++	/**
++	 * dosen't find category if attribute set
++	 */
++	function test_xmlrpc_getpostcategory_attribute_in_tag() {
++
++		$this->assertEquals( 'post_default_category' , xmlrpc_getpostcategory( '<category id="id">category</category>' ) );
++	}
++
++	/**
++	 * find just the frist category
++	 */
++	function test_xmlrpc_getpostcategory_2_categorys() {
++
++		$this->assertEquals( array( 'category1' ) , xmlrpc_getpostcategory( '<category>category1</category><category>category2</category>' ) );
++	}
++
++	/**
++	 * pass cdata
++	 */
++	function test_xmlrpc_getpostcategory_cdata() {
++
++		$this->assertEquals( array( '<![CDATA["category"]]>' ), xmlrpc_getpostcategory( '<category><![CDATA["category"]]></category>' ) );
++	}
++
++	/**
++	 * pass cdata with tag category
++	 */
++	function test_xmlrpc_getpostcategory_bad_cdate() {
++
++		$this->assertEquals( array( '<![CDATA["<category>category' ) , xmlrpc_getpostcategory( '<category><![CDATA["<category>category</category>"]]></category>' ) );
++	}
++}
+Index: tests/phpunit/tests/functions/xmlrpc-getposttitle.php
+===================================================================
+--- tests/phpunit/tests/functions/xmlrpc-getposttitle.php	(nonexistent)
++++ tests/phpunit/tests/functions/xmlrpc-getposttitle.php	(working copy)
+@@ -0,0 +1,138 @@
++<?php
++
++/**
++ * Class Tests_Xmlrpc_Getposttitle
++ * test the xmlrpc_getposttitle function
++ */
++class Tests_Xmlrpc_Getposttitle extends WP_UnitTestCase {
++
++	/**
++	 * setup
++	 * declare the default title needed in function
++	 */
++	function setup() {
++		global $post_default_title;
++		$post_default_title = 'post_default_title';
++	}
++
++	/**
++	 * remove global
++	 */
++	function tearDown() {
++		global $post_default_title;
++		$post_default_title = null;
++	}
++
++
++	/**
++	 * pass null
++	 */
++	function test_xmlrpc_getposttitle_null() {
++		$this->assertEquals( 'post_default_title' , xmlrpc_getposttitle( null ) );
++	}
++
++	/**
++	 * pass good title in test
++	 */
++	function test_xmlrpc_getposttitle_good() {
++
++		$this->assertEquals( 'good_title' , xmlrpc_getposttitle( '<title>good_title</title>' ) );
++	}
++	/**
++	 * pass good title in lot of content
++	 */
++	function test_xmlrpc_getposttitle_good_in_post_tag() {
++
++		$this->assertEquals( 'good_title' , xmlrpc_getposttitle( '<post><title>good_title</title><cat>fsdfsfsf</cat></post>' ) );
++	}
++	/**
++	 * missing close
++	 */
++	function test_xmlrpc_getposttitle_bad() {
++
++		$this->assertEquals( 'post_default_title', xmlrpc_getposttitle( '<title>good_title<title>ssssss' ) );
++	}
++
++	/**
++	 * title has to be something or default is returned
++	 */
++	function test_xmlrpc_getposttitle_missing() {
++
++		$this->assertEquals( 'post_default_title' , xmlrpc_getposttitle( '<title></title>' ) );
++	}
++
++	/**
++	 * return space
++	 */
++	function test_xmlrpc_getposttitle_space() {
++
++		$this->assertEquals( '' , xmlrpc_getposttitle( '<title> </title>' ) );
++	}
++
++	/**
++	 * nest titles tern bad string
++	 */
++	function test_xmlrpc_getposttitle_title() {
++
++		$this->assertEquals( ' <title>title' , xmlrpc_getposttitle( '<title> <title>title</title> </title>' ) );
++
++	}
++
++	/**
++	 * inluded any tag in the title
++	 */
++	function test_xmlrpc_getposttitle_span() {
++
++		$this->assertEquals( ' <span>title</span> ' , xmlrpc_getposttitle( '<title> <span>title</span> </title>' ) );
++	}
++
++
++	/**
++	 * bad opening tag
++	 */
++	function test_xmlrpc_getposttitle_bad_open_tag() {
++
++		$this->assertEquals( 'post_default_title' , xmlrpc_getposttitle( '<title <span>title</span> </title>' ) );
++	}
++
++	/**
++	 * bad closing tag
++	 */
++	function test_xmlrpc_getposttitle_bad_close_tag() {
++
++		$this->assertEquals( 'post_default_title' , xmlrpc_getposttitle( '<title>title</title dddddd>' ) );
++	}
++
++
++	/**
++	 * dosen't find title if attribute set
++	 */
++	function test_xmlrpc_getposttitle_attribute_in_tag() {
++
++		$this->assertEquals( 'post_default_title' , xmlrpc_getposttitle( '<title id="id">title</title>' ) );
++	}
++
++	/**
++	 * find just the frist title
++	 */
++	function test_xmlrpc_getposttitle_2_titles() {
++
++		$this->assertEquals( 'title1' , xmlrpc_getposttitle( '<title>title1</title><title>title2</title>' ) );
++	}
++
++	/**
++	 * pass cdata
++	 */
++	function test_xmlrpc_getposttitle_cdata() {
++
++		$this->assertEquals( '<![CDATA["title"]]>' , xmlrpc_getposttitle( '<title><![CDATA["title"]]></title>' ) );
++	}
++
++	/**
++	 * pass cdata with tag title
++	 */
++	function test_xmlrpc_getposttitle_bad_cdate() {
++
++		$this->assertEquals( '<![CDATA["<title>title' , xmlrpc_getposttitle( '<title><![CDATA["<title>title</title>"]]></title>' ) );
++	}
++}

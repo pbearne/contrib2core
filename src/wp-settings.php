@@ -70,8 +70,19 @@ timer_start();
 // Check if we're in WP_DEBUG mode.
 wp_debug_mode();
 
+/**
+ * Filters whether to enable loading of the advanced-cache.php drop-in.
+ *
+ * This filter runs before it can be used by plugins. It is designed for non-web
+ * run-times. If false is returned, advance-cache.php will never be loaded.
+ *
+ * @since 4.6.0
+ *
+ * @param bool $enable_advanced_cache Whether to enable loading advanced-cache.php (if present).
+ *                                    Default true.
+ */
+if ( WP_CACHE && apply_filters( 'enable_loading_advanced_cache_dropin', true ) ) {
 // For an advanced caching plugin to use. Uses a static drop-in because you would only want one.
-if ( WP_CACHE ) {
 	_backup_plugin_globals();
 	WP_DEBUG ? include( WP_CONTENT_DIR . '/advanced-cache.php' ) : @include( WP_CONTENT_DIR . '/advanced-cache.php' );
 	_restore_plugin_globals();
@@ -88,6 +99,7 @@ require( ABSPATH . WPINC . '/class-wp-error.php' );
 require( ABSPATH . WPINC . '/pomo/mo.php' );
 
 // Include the wpdb class and, if present, a db.php database drop-in.
+global $wpdb;
 require_wp_db();
 
 // Set the database table prefix and the format specifiers for database table columns.
@@ -366,6 +378,13 @@ require_once( ABSPATH . WPINC . '/locale.php' );
  * @since 2.1.0
  */
 $GLOBALS['wp_locale'] = new WP_Locale();
+
+/**
+ * WordPress Locale Switcher object for switching locales.
+ * @global WP_Locale_Switcher $wp_locale_switcher
+ * @since 4.6.0
+ */
+$GLOBALS['wp_locale_switcher'] = new WP_Locale_Switcher();
 
 // Load the functions for the active theme, for both parent and child theme if applicable.
 if ( ! wp_installing() || 'wp-activate.php' === $pagenow ) {

@@ -60,7 +60,7 @@ class Tests_Functions extends WP_UnitTestCase {
 		// test if boundaries are correct
 		$this->assertEquals('1 GB', size_format($gb, 0));
 		$this->assertEquals('1 MB', size_format($mb, 0));
-		$this->assertEquals('1 kB', size_format($kb, 0));
+		$this->assertEquals('1 KB', size_format($kb, 0));
 		$this->assertEquals('1 B',  size_format($b, 0));
 		// now some values around
 		// add some bytes to make sure the result isn't 1.4999999
@@ -71,6 +71,7 @@ class Tests_Functions extends WP_UnitTestCase {
 		$this->assertFalse(size_format(0));
 		$this->assertFalse(size_format('baba'));
 		$this->assertFalse(size_format(array()));
+		$this->assertFalse( size_format( null ) );
 	}
 
 	/**
@@ -500,12 +501,12 @@ class Tests_Functions extends WP_UnitTestCase {
 				'Mozilla/5.0 (iPad; CPU OS 6_0 like Mac OS X) AppleWebKit/536.26 (KHTML, like Gecko) Version/6.0 Mobile/10A5376e Safari/8536.25',
 				true,
 			),
-			// Android 2.2, Android Webkit Browser 
+			// Android 2.2, Android Webkit Browser
 			array(
 				'Mozilla/5.0 (Android 2.2; Windows; U; Windows NT 6.1; en-US) AppleWebKit/533.19.4 (KHTML, like Gecko) Version/5.0.3 Safari/533.19.4',
 				true,
 			),
-			// BlackBerry 9900, BlackBerry browser 
+			// BlackBerry 9900, BlackBerry browser
 			array(
 				'Mozilla/5.0 (BlackBerry; U; BlackBerry 9900; en) AppleWebKit/534.11+ (KHTML, like Gecko) Version/7.1.0.346 Mobile Safari/534.11+',
 				true,

@@ -1,0 +1,1375 @@
+Index: src/wp-includes/class-wp-locale-storage.php
+===================================================================
+--- src/wp-includes/class-wp-locale-storage.php	(nonexistent)
++++ src/wp-includes/class-wp-locale-storage.php	(working copy)
+@@ -0,0 +1,47 @@
++<?php
++/**
++ * Simple single (locale) value storage.
++ *
++ * @package    WordPress
++ * @subpackage i18n
++ */
++
++/**
++ * Class for locale storage objects with a getter.
++ *
++ * @since 4.6.0
++ */
++class WP_Locale_Storage {
++
++	/**
++	 * The stored locale.
++	 *
++	 * @since 4.6.0
++	 * @var string
++	 */
++	private $locale;
++
++	/**
++	 * Constructor. Stores the given locale.
++	 *
++	 * @since 4.6.0
++	 *
++	 * @param string $locale The locale.
++	 */
++	public function __construct( $locale ) {
++
++		$this->locale = (string) $locale;
++	}
++
++	/**
++	 * Returns the stored locale.
++	 *
++	 * @since 4.6.0
++	 *
++	 * @return string The stored locale.
++	 */
++	public function get() {
++
++		return $this->locale;
++	}
++}
+Index: src/wp-includes/class-wp-locale-switcher.php
+===================================================================
+--- src/wp-includes/class-wp-locale-switcher.php	(nonexistent)
++++ src/wp-includes/class-wp-locale-switcher.php	(working copy)
+@@ -0,0 +1,217 @@
++<?php
++/**
++ * Locale switcher object.
++ *
++ * @package    WordPress
++ * @subpackage i18n
++ */
++
++/**
++ * Class for switching locales.
++ *
++ * @since 4.6.0
++ */
++class WP_Locale_Switcher {
++
++	/**
++	 * Filter callbacks.
++	 *
++	 * @since 4.6.0
++	 * @var callback[]
++	 */
++	private $filters = array();
++
++	/**
++	 * Locale stack.
++	 *
++	 * @since 4.6.0
++	 * @var string[]
++	 */
++	private $locales = array();
++
++	/**
++	 * Original locale.
++	 *
++	 * @since 4.6.0
++	 * @var string
++	 */
++	private $original_locale;
++
++	/**
++	 * Translation objects.
++	 *
++	 * @since 4.6.0
++	 * @var NOOP_Translations[][]
++	 */
++	private $translations = array();
++
++	/**
++	 * Constructor. Stores the original locale.
++	 *
++	 * @since 4.6.0
++	 */
++	public function __construct() {
++
++		$this->original_locale = get_locale();
++	}
++
++	/**
++	 * Switches the translations according to the given locale.
++	 *
++	 * @since 4.6.0
++	 *
++	 * @param string $locale The locale.
++	 *
++	 * @return string $locale |false
++	 */
++	public function switch_to_locale( $locale ) {
++
++		$current_locale = get_locale();
++		if ( $current_locale === $locale ) {
++			return $locale;
++		}
++
++		// add here so not to record duplicate switches
++		$this->locales[] = $locale;
++
++		/**
++		 * @global MO[] $l10n
++		 */
++		global $l10n;
++
++		// return early if on no language to switch from
++		if ( null === $l10n ) {
++			return false;
++		}
++
++		$textdomains = array_keys( $l10n );
++
++		if ( ! $this->has_translations_for_locale( $current_locale ) ) {
++			foreach ( $textdomains as $textdomain ) {
++				$this->translations[ $current_locale ][ $textdomain ] = get_translations_for_domain( $textdomain );
++			}
++		}
++
++		$this->remove_filters();
++
++		$this->add_filter_for_locale( $locale );
++
++		if ( $this->has_translations_for_locale( $locale ) ) {
++			foreach ( $textdomains as $textdomain ) {
++				if ( isset( $this->translations[ $locale ][ $textdomain ] ) ) {
++					$l10n[ $textdomain ] = $this->translations[ $locale ][ $textdomain ];
++				}
++			}
++		} else {
++			foreach ( $l10n as $textdomain => $mo ) {
++				if ( 'default' === $textdomain ) {
++					load_default_textdomain();
++
++					continue;
++				}
++
++				unload_textdomain( $textdomain );
++
++				if ( $mofile = $mo->get_filename() ) {
++					load_textdomain( $textdomain, $mofile );
++				}
++
++				$this->translations[ $locale ][ $textdomain ] = get_translations_for_domain( $textdomain );
++			}
++		}
++
++		/**
++		 * @global WP_Locale $wp_locale
++		 */
++		$GLOBALS['wp_locale'] = new WP_Locale();
++
++		return $locale;
++	}
++
++	/**
++	 * Restores the translations according to the previous locale.
++	 *
++	 * @since 4.6.0
++	 *
++	 * @param bool $reset false
++	 * @return false|string Locale on success, false on error.
++	 */
++	public function restore_locale( $reset = false ) {
++
++		if ( ! array_pop( $this->locales ) ) {
++			// The stack is empty, bail.
++			return false;
++		}
++		$locale = $this->original_locale;
++		$this->remove_filters();
++		if ( false === $reset ) {
++			if ( $locale = end( $this->locales ) ) {
++				if ( isset( $this->filters[ $locale ] ) ) {
++					add_filter( 'locale', $this->filters[ $locale ] );
++				}
++			}
++		}
++
++		/**
++		 * @global MO[] $l10n
++		 */
++		global $l10n;
++
++		foreach ( array_keys( $l10n ) as $textdomain ) {
++			if ( isset( $this->translations[ $locale ][ $textdomain ] ) ) {
++				$l10n[ $textdomain ] = $this->translations[ $locale ][ $textdomain ];
++			}
++		}
++
++		/**
++		 * @global WP_Locale $wp_locale
++		 */
++		$GLOBALS['wp_locale'] = new WP_Locale();
++
++		return $locale;
++	}
++
++	/**
++	 * Checks if there are cached translations for the given locale.
++	 *
++	 * @since 4.6.0
++	 *
++	 * @param string $locale The locale.
++	 * @return bool True if there are cached translations for the given locale, false otherwise.
++	 */
++	private function has_translations_for_locale( $locale ) {
++
++		return ! empty( $this->translations[ $locale ] );
++	}
++
++	/**
++	 * Removes all filter callbacks added before.
++	 *
++	 * @since 4.6.0
++	 */
++	private function remove_filters() {
++
++		foreach ( $this->filters as $filter ) {
++			remove_filter( 'locale', $filter );
++		}
++	}
++
++	/**
++	 * Adds a filter callback returning the given locale.
++	 *
++	 * @since 4.6.0
++	 *
++	 * @param string $locale The locale.
++	 */
++	private function add_filter_for_locale( $locale ) {
++
++		if ( ! isset( $this->filters[ $locale ] ) ) {
++			require_once dirname( __FILE__ ) . '/class-wp-locale-storage.php';
++
++			// This SHOULD be a closure.
++			$this->filters[ $locale ] = array( new WP_Locale_Storage( $locale ), 'get' );
++		}
++
++		add_filter( 'locale', $this->filters[ $locale ] );
++	}
++}
+Index: src/wp-includes/class-wp-locale.php
+===================================================================
+--- src/wp-includes/class-wp-locale.php	(nonexistent)
++++ src/wp-includes/class-wp-locale.php	(working copy)
+@@ -0,0 +1,404 @@
++<?php
++/**
++ * Date and Time Locale object
++ *
++ * @package WordPress
++ * @subpackage i18n
++ */
++
++/**
++ * Class that loads the calendar locale.
++ *
++ * @since 2.1.0
++ */
++class WP_Locale {
++	/**
++	 * Stores the translated strings for the full weekday names.
++	 *
++	 * @since 2.1.0
++	 * @var array
++	 */
++	public $weekday;
++
++	/**
++	 * Stores the translated strings for the one character weekday names.
++	 *
++	 * There is a hack to make sure that Tuesday and Thursday, as well
++	 * as Sunday and Saturday, don't conflict. See init() method for more.
++	 *
++	 * @see WP_Locale::init() for how to handle the hack.
++	 *
++	 * @since 2.1.0
++	 * @var array
++	 */
++	public $weekday_initial;
++
++	/**
++	 * Stores the translated strings for the abbreviated weekday names.
++	 *
++	 * @since 2.1.0
++	 * @var array
++	 */
++	public $weekday_abbrev;
++
++	/**
++	 * Stores the default start of the week.
++	 *
++	 * @since 4.4.0
++	 * @var string
++	 */
++	public $start_of_week;
++
++	/**
++	 * Stores the translated strings for the full month names.
++	 *
++	 * @since 2.1.0
++	 * @var array
++	 */
++	public $month;
++
++	/**
++	 * Stores the translated strings for the full month names.
++	 * array( 'siječnja', 'veljače', 'ožujka', 'travnja', 'svibnja', 'lipnja', 'srpnja', 'kolovoza', 'rujna', 'listopada', 'studenoga', 'prosinca' );
++	 *
++	 * @since 4.6.0
++	 * @var array
++	 */
++	public $month_genitive;
++
++	/**
++	 * Stores the translated strings for the abbreviated month names.
++	 *
++	 * @since 2.1.0
++	 * @var array
++	 */
++	public $month_abbrev;
++
++	/**
++	 * Stores the translated strings for 'am' and 'pm'.
++	 *
++	 * Also the capitalized versions.
++	 *
++	 * @since 2.1.0
++	 * @var array
++	 */
++	public $meridiem;
++
++	/**
++	 * The text direction of the locale language.
++	 *
++	 * Default is left to right 'ltr'.
++	 *
++	 * @since 2.1.0
++	 * @var string
++	 */
++	public $text_direction = 'ltr';
++
++	/**
++	 * The thousands separator and decimal point values used for localizing numbers.
++	 *
++	 * @since 2.3.0
++	 * @access public
++	 * @var array
++	 */
++	public $number_format;
++
++	/**
++	 * Sets up the translated strings and object properties.
++	 *
++	 * The method creates the translatable strings for various
++	 * calendar elements. Which allows for specifying locale
++	 * specific calendar names and text direction.
++	 *
++	 * @since 2.1.0
++	 * @access private
++	 *
++	 * @global string $text_direction
++	 * @global string $wp_version
++	 */
++	public function init() {
++		// The Weekdays
++		$this->weekday[0] = /* translators: weekday */ __('Sunday');
++		$this->weekday[1] = /* translators: weekday */ __('Monday');
++		$this->weekday[2] = /* translators: weekday */ __('Tuesday');
++		$this->weekday[3] = /* translators: weekday */ __('Wednesday');
++		$this->weekday[4] = /* translators: weekday */ __('Thursday');
++		$this->weekday[5] = /* translators: weekday */ __('Friday');
++		$this->weekday[6] = /* translators: weekday */ __('Saturday');
++
++		// The first letter of each day.
++		$this->weekday_initial[ __( 'Sunday' ) ]    = /* translators: one-letter abbreviation of the weekday */ _x( 'S', 'Sunday initial' );
++		$this->weekday_initial[ __( 'Monday' ) ]    = /* translators: one-letter abbreviation of the weekday */ _x( 'M', 'Monday initial' );
++		$this->weekday_initial[ __( 'Tuesday' ) ]   = /* translators: one-letter abbreviation of the weekday */ _x( 'T', 'Tuesday initial' );
++		$this->weekday_initial[ __( 'Wednesday' ) ] = /* translators: one-letter abbreviation of the weekday */ _x( 'W', 'Wednesday initial' );
++		$this->weekday_initial[ __( 'Thursday' ) ]  = /* translators: one-letter abbreviation of the weekday */ _x( 'T', 'Thursday initial' );
++		$this->weekday_initial[ __( 'Friday' ) ]    = /* translators: one-letter abbreviation of the weekday */ _x( 'F', 'Friday initial' );
++		$this->weekday_initial[ __( 'Saturday' ) ]  = /* translators: one-letter abbreviation of the weekday */ _x( 'S', 'Saturday initial' );
++
++		// Abbreviations for each day.
++		$this->weekday_abbrev[__('Sunday')]    = /* translators: three-letter abbreviation of the weekday */ __('Sun');
++		$this->weekday_abbrev[__('Monday')]    = /* translators: three-letter abbreviation of the weekday */ __('Mon');
++		$this->weekday_abbrev[__('Tuesday')]   = /* translators: three-letter abbreviation of the weekday */ __('Tue');
++		$this->weekday_abbrev[__('Wednesday')] = /* translators: three-letter abbreviation of the weekday */ __('Wed');
++		$this->weekday_abbrev[__('Thursday')]  = /* translators: three-letter abbreviation of the weekday */ __('Thu');
++		$this->weekday_abbrev[__('Friday')]    = /* translators: three-letter abbreviation of the weekday */ __('Fri');
++		$this->weekday_abbrev[__('Saturday')]  = /* translators: three-letter abbreviation of the weekday */ __('Sat');
++
++		// The Months
++		$this->month['01'] = /* translators: month name */ __( 'January' );
++		$this->month['02'] = /* translators: month name */ __( 'February' );
++		$this->month['03'] = /* translators: month name */ __( 'March' );
++		$this->month['04'] = /* translators: month name */ __( 'April' );
++		$this->month['05'] = /* translators: month name */ __( 'May' );
++		$this->month['06'] = /* translators: month name */ __( 'June' );
++		$this->month['07'] = /* translators: month name */ __( 'July' );
++		$this->month['08'] = /* translators: month name */ __( 'August' );
++		$this->month['09'] = /* translators: month name */ __( 'September' );
++		$this->month['10'] = /* translators: month name */ __( 'October' );
++		$this->month['11'] = /* translators: month name */ __( 'November' );
++		$this->month['12'] = /* translators: month name */ __( 'December' );
++
++		// The Months, genitive
++		$this->month_genitive['01'] = /* translators: month name, genitive */ _x( 'January', 'genitive' );
++		$this->month_genitive['02'] = /* translators: month name, genitive */ _x( 'February', 'genitive' );
++		$this->month_genitive['03'] = /* translators: month name, genitive */ _x( 'March', 'genitive' );
++		$this->month_genitive['04'] = /* translators: month name, genitive */ _x( 'April', 'genitive' );
++		$this->month_genitive['05'] = /* translators: month name, genitive */ _x( 'May', 'genitive' );
++		$this->month_genitive['06'] = /* translators: month name, genitive */ _x( 'June', 'genitive' );
++		$this->month_genitive['07'] = /* translators: month name, genitive */ _x( 'July', 'genitive' );
++		$this->month_genitive['08'] = /* translators: month name, genitive */ _x( 'August', 'genitive' );
++		$this->month_genitive['09'] = /* translators: month name, genitive */ _x( 'September', 'genitive' );
++		$this->month_genitive['10'] = /* translators: month name, genitive */ _x( 'October', 'genitive' );
++		$this->month_genitive['11'] = /* translators: month name, genitive */ _x( 'November', 'genitive' );
++		$this->month_genitive['12'] = /* translators: month name, genitive */ _x( 'December', 'genitive' );
++
++		// Abbreviations for each month.
++		$this->month_abbrev[ __( 'January' ) ]   = /* translators: three-letter abbreviation of the month */ _x( 'Jan', 'January abbreviation' );
++		$this->month_abbrev[ __( 'February' ) ]  = /* translators: three-letter abbreviation of the month */ _x( 'Feb', 'February abbreviation' );
++		$this->month_abbrev[ __( 'March' ) ]     = /* translators: three-letter abbreviation of the month */ _x( 'Mar', 'March abbreviation' );
++		$this->month_abbrev[ __( 'April' ) ]     = /* translators: three-letter abbreviation of the month */ _x( 'Apr', 'April abbreviation' );
++		$this->month_abbrev[ __( 'May' ) ]       = /* translators: three-letter abbreviation of the month */ _x( 'May', 'May abbreviation' );
++		$this->month_abbrev[ __( 'June' ) ]      = /* translators: three-letter abbreviation of the month */ _x( 'Jun', 'June abbreviation' );
++		$this->month_abbrev[ __( 'July' ) ]      = /* translators: three-letter abbreviation of the month */ _x( 'Jul', 'July abbreviation' );
++		$this->month_abbrev[ __( 'August' ) ]    = /* translators: three-letter abbreviation of the month */ _x( 'Aug', 'August abbreviation' );
++		$this->month_abbrev[ __( 'September' ) ] = /* translators: three-letter abbreviation of the month */ _x( 'Sep', 'September abbreviation' );
++		$this->month_abbrev[ __( 'October' ) ]   = /* translators: three-letter abbreviation of the month */ _x( 'Oct', 'October abbreviation' );
++		$this->month_abbrev[ __( 'November' ) ]  = /* translators: three-letter abbreviation of the month */ _x( 'Nov', 'November abbreviation' );
++		$this->month_abbrev[ __( 'December' ) ]  = /* translators: three-letter abbreviation of the month */ _x( 'Dec', 'December abbreviation' );
++
++		// The Meridiems
++		$this->meridiem['am'] = __('am');
++		$this->meridiem['pm'] = __('pm');
++		$this->meridiem['AM'] = __('AM');
++		$this->meridiem['PM'] = __('PM');
++
++		// Numbers formatting
++		// See http://php.net/number_format
++
++		/* translators: $thousands_sep argument for http://php.net/number_format, default is , */
++		$thousands_sep = __( 'number_format_thousands_sep' );
++
++		if ( version_compare( PHP_VERSION, '5.4', '>=' ) ) {
++			// Replace space with a non-breaking space to avoid wrapping.
++			$thousands_sep = str_replace( ' ', '&nbsp;', $thousands_sep );
++		} else {
++			// PHP < 5.4.0 does not support multiple bytes in thousands separator.
++			$thousands_sep = str_replace( array( '&nbsp;', '&#160;' ), ' ', $thousands_sep );
++		}
++
++		$this->number_format['thousands_sep'] = ( 'number_format_thousands_sep' === $thousands_sep ) ? ',' : $thousands_sep;
++
++		/* translators: $dec_point argument for http://php.net/number_format, default is . */
++		$decimal_point = __( 'number_format_decimal_point' );
++
++		$this->number_format['decimal_point'] = ( 'number_format_decimal_point' === $decimal_point ) ? '.' : $decimal_point;
++
++		// Set text direction.
++		if ( isset( $GLOBALS['text_direction'] ) )
++			$this->text_direction = $GLOBALS['text_direction'];
++		/* translators: 'rtl' or 'ltr'. This sets the text direction for WordPress. */
++		elseif ( 'rtl' == _x( 'ltr', 'text direction' ) )
++			$this->text_direction = 'rtl';
++
++		if ( 'rtl' === $this->text_direction && strpos( $GLOBALS['wp_version'], '-src' ) ) {
++			$this->text_direction = 'ltr';
++			add_action( 'all_admin_notices', array( $this, 'rtl_src_admin_notice' ) );
++		}
++	}
++
++	/**
++	 * Outputs an admin notice if the /build directory must be used for RTL.
++	 *
++	 * @since 3.8.0
++	 * @access public
++	 */
++	public function rtl_src_admin_notice() {
++		/* translators: %s: Name of the directory (build) */
++		echo '<div class="error"><p>' . sprintf( __( 'The %s directory of the develop repository must be used for RTL.' ), '<code>build</code>' ) . '</p></div>';
++	}
++
++	/**
++	 * Retrieve the full translated weekday word.
++	 *
++	 * Week starts on translated Sunday and can be fetched
++	 * by using 0 (zero). So the week starts with 0 (zero)
++	 * and ends on Saturday with is fetched by using 6 (six).
++	 *
++	 * @since 2.1.0
++	 * @access public
++	 *
++	 * @param int $weekday_number 0 for Sunday through 6 Saturday
++	 * @return string Full translated weekday
++	 */
++	public function get_weekday($weekday_number) {
++		return $this->weekday[$weekday_number];
++	}
++
++	/**
++	 * Retrieve the translated weekday initial.
++	 *
++	 * The weekday initial is retrieved by the translated
++	 * full weekday word. When translating the weekday initial
++	 * pay attention to make sure that the starting letter does
++	 * not conflict.
++	 *
++	 * @since 2.1.0
++	 * @access public
++	 *
++	 * @param string $weekday_name
++	 * @return string
++	 */
++	public function get_weekday_initial($weekday_name) {
++		return $this->weekday_initial[$weekday_name];
++	}
++
++	/**
++	 * Retrieve the translated weekday abbreviation.
++	 *
++	 * The weekday abbreviation is retrieved by the translated
++	 * full weekday word.
++	 *
++	 * @since 2.1.0
++	 * @access public
++	 *
++	 * @param string $weekday_name Full translated weekday word
++	 * @return string Translated weekday abbreviation
++	 */
++	public function get_weekday_abbrev($weekday_name) {
++		return $this->weekday_abbrev[$weekday_name];
++	}
++
++	/**
++	 * Retrieve the full translated month by month number.
++	 *
++	 * The $month_number parameter has to be a string
++	 * because it must have the '0' in front of any number
++	 * that is less than 10. Starts from '01' and ends at
++	 * '12'.
++	 *
++	 * You can use an integer instead and it will add the
++	 * '0' before the numbers less than 10 for you.
++	 *
++	 * @since 2.1.0
++	 * @access public
++	 *
++	 * @param string|int $month_number '01' through '12'
++	 * @return string Translated full month name
++	 */
++	public function get_month($month_number) {
++		return $this->month[zeroise($month_number, 2)];
++	}
++
++	/**
++	 * Retrieve translated version of month abbreviation string.
++	 *
++	 * The $month_name parameter is expected to be the translated or
++	 * translatable version of the month.
++	 *
++	 * @since 2.1.0
++	 * @access public
++	 *
++	 * @param string $month_name Translated month to get abbreviated version
++	 * @return string Translated abbreviated month
++	 */
++	public function get_month_abbrev($month_name) {
++		return $this->month_abbrev[$month_name];
++	}
++
++	/**
++	 * Retrieve translated version of meridiem string.
++	 *
++	 * The $meridiem parameter is expected to not be translated.
++	 *
++	 * @since 2.1.0
++	 * @access public
++	 *
++	 * @param string $meridiem Either 'am', 'pm', 'AM', or 'PM'. Not translated version.
++	 * @return string Translated version
++	 */
++	public function get_meridiem($meridiem) {
++		return $this->meridiem[$meridiem];
++	}
++
++	/**
++	 * Global variables are deprecated.
++	 *
++	 * For backward compatibility only.
++	 *
++	 * @deprecated For backward compatibility only.
++	 * @access private
++	 *
++	 * @global array $weekday
++	 * @global array $weekday_initial
++	 * @global array $weekday_abbrev
++	 * @global array $month
++	 * @global array $month_abbrev
++	 *
++	 * @since 2.1.0
++	 */
++	public function register_globals() {
++		$GLOBALS['weekday']         = $this->weekday;
++		$GLOBALS['weekday_initial'] = $this->weekday_initial;
++		$GLOBALS['weekday_abbrev']  = $this->weekday_abbrev;
++		$GLOBALS['month']           = $this->month;
++		$GLOBALS['month_abbrev']    = $this->month_abbrev;
++	}
++
++	/**
++	 * Constructor which calls helper methods to set up object variables
++	 *
++	 * @since 2.1.0
++	 */
++	public function __construct() {
++		$this->init();
++		$this->register_globals();
++	}
++
++	/**
++	 * Checks if current locale is RTL.
++	 *
++	 * @since 3.0.0
++	 * @return bool Whether locale is RTL.
++	 */
++	public function is_rtl() {
++		return 'rtl' == $this->text_direction;
++	}
++
++	/**
++	 * Register date/time format strings for general POT.
++	 *
++	 * Private, unused method to add some date/time formats translated
++	 * on wp-admin/options-general.php to the general POT that would
++	 * otherwise be added to the admin POT.
++	 *
++	 * @since 3.6.0
++	 */
++	public function _strings_for_pot() {
++		/* translators: localized date format, see http://php.net/date */
++		__( 'F j, Y' );
++		/* translators: localized time format, see http://php.net/date */
++		__( 'g:i a' );
++		/* translators: localized date and time format, see http://php.net/date */
++		__( 'F j, Y g:i a' );
++	}
++}
+Index: src/wp-includes/locale.php
+===================================================================
+--- src/wp-includes/locale.php	(revision 37597)
++++ src/wp-includes/locale.php	(working copy)
+@@ -1,399 +1,13 @@
+ <?php
+-/**
+- * Date and Time Locale object
+- *
+- * @package WordPress
+- * @subpackage i18n
+- */
+ 
+-/**
+- * Class that loads the calendar locale.
+- *
+- * @since 2.1.0
+- */
+-class WP_Locale {
+-	/**
+-	 * Stores the translated strings for the full weekday names.
+-	 *
+-	 * @since 2.1.0
+-	 * @var array
+-	 */
+-	public $weekday;
++$dir = dirname( __FILE__ );
+ 
+-	/**
+-	 * Stores the translated strings for the one character weekday names.
+-	 *
+-	 * There is a hack to make sure that Tuesday and Thursday, as well
+-	 * as Sunday and Saturday, don't conflict. See init() method for more.
+-	 *
+-	 * @see WP_Locale::init() for how to handle the hack.
+-	 *
+-	 * @since 2.1.0
+-	 * @var array
+-	 */
+-	public $weekday_initial;
++require_once "$dir/class-wp-locale.php";
+ 
+-	/**
+-	 * Stores the translated strings for the abbreviated weekday names.
+-	 *
+-	 * @since 2.1.0
+-	 * @var array
+-	 */
+-	public $weekday_abbrev;
++require_once "$dir/class-wp-locale-switcher.php";
+ 
+-	/**
+-	 * Stores the default start of the week.
+-	 *
+-	 * @since 4.4.0
+-	 * @var string
+-	 */
+-	public $start_of_week;
++unset( $dir );
+ 
+-	/**
+-	 * Stores the translated strings for the full month names.
+-	 *
+-	 * @since 2.1.0
+-	 * @var array
+-	 */
+-	public $month;
+-
+-	/**
+-	 * Stores the translated strings for the abbreviated month names.
+-	 *
+-	 * @since 2.1.0
+-	 * @var array
+-	 */
+-	public $month_abbrev;
+-
+-	/**
+-	 * Stores the translated strings for 'am' and 'pm'.
+-	 *
+-	 * Also the capitalized versions.
+-	 *
+-	 * @since 2.1.0
+-	 * @var array
+-	 */
+-	public $meridiem;
+-
+-	/**
+-	 * The text direction of the locale language.
+-	 *
+-	 * Default is left to right 'ltr'.
+-	 *
+-	 * @since 2.1.0
+-	 * @var string
+-	 */
+-	public $text_direction = 'ltr';
+-
+-	/**
+-	 * The thousands separator and decimal point values used for localizing numbers.
+-	 *
+-	 * @since 2.3.0
+-	 * @access public
+-	 * @var array
+-	 */
+-	public $number_format;
+-
+-	/**
+-	 * Sets up the translated strings and object properties.
+-	 *
+-	 * The method creates the translatable strings for various
+-	 * calendar elements. Which allows for specifying locale
+-	 * specific calendar names and text direction.
+-	 *
+-	 * @since 2.1.0
+-	 * @access private
+-	 *
+-	 * @global string $text_direction
+-	 * @global string $wp_version
+-	 */
+-	public function init() {
+-		// The Weekdays
+-		$this->weekday[0] = /* translators: weekday */ __('Sunday');
+-		$this->weekday[1] = /* translators: weekday */ __('Monday');
+-		$this->weekday[2] = /* translators: weekday */ __('Tuesday');
+-		$this->weekday[3] = /* translators: weekday */ __('Wednesday');
+-		$this->weekday[4] = /* translators: weekday */ __('Thursday');
+-		$this->weekday[5] = /* translators: weekday */ __('Friday');
+-		$this->weekday[6] = /* translators: weekday */ __('Saturday');
+-
+-		// The first letter of each day.
+-		$this->weekday_initial[ __( 'Sunday' ) ]    = /* translators: one-letter abbreviation of the weekday */ _x( 'S', 'Sunday initial' );
+-		$this->weekday_initial[ __( 'Monday' ) ]    = /* translators: one-letter abbreviation of the weekday */ _x( 'M', 'Monday initial' );
+-		$this->weekday_initial[ __( 'Tuesday' ) ]   = /* translators: one-letter abbreviation of the weekday */ _x( 'T', 'Tuesday initial' );
+-		$this->weekday_initial[ __( 'Wednesday' ) ] = /* translators: one-letter abbreviation of the weekday */ _x( 'W', 'Wednesday initial' );
+-		$this->weekday_initial[ __( 'Thursday' ) ]  = /* translators: one-letter abbreviation of the weekday */ _x( 'T', 'Thursday initial' );
+-		$this->weekday_initial[ __( 'Friday' ) ]    = /* translators: one-letter abbreviation of the weekday */ _x( 'F', 'Friday initial' );
+-		$this->weekday_initial[ __( 'Saturday' ) ]  = /* translators: one-letter abbreviation of the weekday */ _x( 'S', 'Saturday initial' );
+-
+-		// Abbreviations for each day.
+-		$this->weekday_abbrev[__('Sunday')]    = /* translators: three-letter abbreviation of the weekday */ __('Sun');
+-		$this->weekday_abbrev[__('Monday')]    = /* translators: three-letter abbreviation of the weekday */ __('Mon');
+-		$this->weekday_abbrev[__('Tuesday')]   = /* translators: three-letter abbreviation of the weekday */ __('Tue');
+-		$this->weekday_abbrev[__('Wednesday')] = /* translators: three-letter abbreviation of the weekday */ __('Wed');
+-		$this->weekday_abbrev[__('Thursday')]  = /* translators: three-letter abbreviation of the weekday */ __('Thu');
+-		$this->weekday_abbrev[__('Friday')]    = /* translators: three-letter abbreviation of the weekday */ __('Fri');
+-		$this->weekday_abbrev[__('Saturday')]  = /* translators: three-letter abbreviation of the weekday */ __('Sat');
+-
+-		// The Months
+-		$this->month['01'] = /* translators: month name */ __( 'January' );
+-		$this->month['02'] = /* translators: month name */ __( 'February' );
+-		$this->month['03'] = /* translators: month name */ __( 'March' );
+-		$this->month['04'] = /* translators: month name */ __( 'April' );
+-		$this->month['05'] = /* translators: month name */ __( 'May' );
+-		$this->month['06'] = /* translators: month name */ __( 'June' );
+-		$this->month['07'] = /* translators: month name */ __( 'July' );
+-		$this->month['08'] = /* translators: month name */ __( 'August' );
+-		$this->month['09'] = /* translators: month name */ __( 'September' );
+-		$this->month['10'] = /* translators: month name */ __( 'October' );
+-		$this->month['11'] = /* translators: month name */ __( 'November' );
+-		$this->month['12'] = /* translators: month name */ __( 'December' );
+-
+-		// The Months, genitive
+-		$this->month_genitive['01'] = /* translators: month name, genitive */ _x( 'January', 'genitive' );
+-		$this->month_genitive['02'] = /* translators: month name, genitive */ _x( 'February', 'genitive' );
+-		$this->month_genitive['03'] = /* translators: month name, genitive */ _x( 'March', 'genitive' );
+-		$this->month_genitive['04'] = /* translators: month name, genitive */ _x( 'April', 'genitive' );
+-		$this->month_genitive['05'] = /* translators: month name, genitive */ _x( 'May', 'genitive' );
+-		$this->month_genitive['06'] = /* translators: month name, genitive */ _x( 'June', 'genitive' );
+-		$this->month_genitive['07'] = /* translators: month name, genitive */ _x( 'July', 'genitive' );
+-		$this->month_genitive['08'] = /* translators: month name, genitive */ _x( 'August', 'genitive' );
+-		$this->month_genitive['09'] = /* translators: month name, genitive */ _x( 'September', 'genitive' );
+-		$this->month_genitive['10'] = /* translators: month name, genitive */ _x( 'October', 'genitive' );
+-		$this->month_genitive['11'] = /* translators: month name, genitive */ _x( 'November', 'genitive' );
+-		$this->month_genitive['12'] = /* translators: month name, genitive */ _x( 'December', 'genitive' );
+-
+-		// Abbreviations for each month.
+-		$this->month_abbrev[ __( 'January' ) ]   = /* translators: three-letter abbreviation of the month */ _x( 'Jan', 'January abbreviation' );
+-		$this->month_abbrev[ __( 'February' ) ]  = /* translators: three-letter abbreviation of the month */ _x( 'Feb', 'February abbreviation' );
+-		$this->month_abbrev[ __( 'March' ) ]     = /* translators: three-letter abbreviation of the month */ _x( 'Mar', 'March abbreviation' );
+-		$this->month_abbrev[ __( 'April' ) ]     = /* translators: three-letter abbreviation of the month */ _x( 'Apr', 'April abbreviation' );
+-		$this->month_abbrev[ __( 'May' ) ]       = /* translators: three-letter abbreviation of the month */ _x( 'May', 'May abbreviation' );
+-		$this->month_abbrev[ __( 'June' ) ]      = /* translators: three-letter abbreviation of the month */ _x( 'Jun', 'June abbreviation' );
+-		$this->month_abbrev[ __( 'July' ) ]      = /* translators: three-letter abbreviation of the month */ _x( 'Jul', 'July abbreviation' );
+-		$this->month_abbrev[ __( 'August' ) ]    = /* translators: three-letter abbreviation of the month */ _x( 'Aug', 'August abbreviation' );
+-		$this->month_abbrev[ __( 'September' ) ] = /* translators: three-letter abbreviation of the month */ _x( 'Sep', 'September abbreviation' );
+-		$this->month_abbrev[ __( 'October' ) ]   = /* translators: three-letter abbreviation of the month */ _x( 'Oct', 'October abbreviation' );
+-		$this->month_abbrev[ __( 'November' ) ]  = /* translators: three-letter abbreviation of the month */ _x( 'Nov', 'November abbreviation' );
+-		$this->month_abbrev[ __( 'December' ) ]  = /* translators: three-letter abbreviation of the month */ _x( 'Dec', 'December abbreviation' );
+-
+-		// The Meridiems
+-		$this->meridiem['am'] = __('am');
+-		$this->meridiem['pm'] = __('pm');
+-		$this->meridiem['AM'] = __('AM');
+-		$this->meridiem['PM'] = __('PM');
+-
+-		// Numbers formatting
+-		// See http://php.net/number_format
+-
+-		/* translators: $thousands_sep argument for http://php.net/number_format, default is , */
+-		$thousands_sep = __( 'number_format_thousands_sep' );
+-
+-		if ( version_compare( PHP_VERSION, '5.4', '>=' ) ) {
+-			// Replace space with a non-breaking space to avoid wrapping.
+-			$thousands_sep = str_replace( ' ', '&nbsp;', $thousands_sep );
+-		} else {
+-			// PHP < 5.4.0 does not support multiple bytes in thousands separator.
+-			$thousands_sep = str_replace( array( '&nbsp;', '&#160;' ), ' ', $thousands_sep );
+-		}
+-
+-		$this->number_format['thousands_sep'] = ( 'number_format_thousands_sep' === $thousands_sep ) ? ',' : $thousands_sep;
+-
+-		/* translators: $dec_point argument for http://php.net/number_format, default is . */
+-		$decimal_point = __( 'number_format_decimal_point' );
+-
+-		$this->number_format['decimal_point'] = ( 'number_format_decimal_point' === $decimal_point ) ? '.' : $decimal_point;
+-
+-		// Set text direction.
+-		if ( isset( $GLOBALS['text_direction'] ) )
+-			$this->text_direction = $GLOBALS['text_direction'];
+-		/* translators: 'rtl' or 'ltr'. This sets the text direction for WordPress. */
+-		elseif ( 'rtl' == _x( 'ltr', 'text direction' ) )
+-			$this->text_direction = 'rtl';
+-
+-		if ( 'rtl' === $this->text_direction && strpos( $GLOBALS['wp_version'], '-src' ) ) {
+-			$this->text_direction = 'ltr';
+-			add_action( 'all_admin_notices', array( $this, 'rtl_src_admin_notice' ) );
+-		}
+-	}
+-
+-	/**
+-	 * Outputs an admin notice if the /build directory must be used for RTL.
+-	 *
+-	 * @since 3.8.0
+-	 * @access public
+-	 */
+-	public function rtl_src_admin_notice() {
+-		/* translators: %s: Name of the directory (build) */
+-		echo '<div class="error"><p>' . sprintf( __( 'The %s directory of the develop repository must be used for RTL.' ), '<code>build</code>' ) . '</p></div>';
+-	}
+-
+-	/**
+-	 * Retrieve the full translated weekday word.
+-	 *
+-	 * Week starts on translated Sunday and can be fetched
+-	 * by using 0 (zero). So the week starts with 0 (zero)
+-	 * and ends on Saturday with is fetched by using 6 (six).
+-	 *
+-	 * @since 2.1.0
+-	 * @access public
+-	 *
+-	 * @param int $weekday_number 0 for Sunday through 6 Saturday
+-	 * @return string Full translated weekday
+-	 */
+-	public function get_weekday($weekday_number) {
+-		return $this->weekday[$weekday_number];
+-	}
+-
+-	/**
+-	 * Retrieve the translated weekday initial.
+-	 *
+-	 * The weekday initial is retrieved by the translated
+-	 * full weekday word. When translating the weekday initial
+-	 * pay attention to make sure that the starting letter does
+-	 * not conflict.
+-	 *
+-	 * @since 2.1.0
+-	 * @access public
+-	 *
+-	 * @param string $weekday_name
+-	 * @return string
+-	 */
+-	public function get_weekday_initial($weekday_name) {
+-		return $this->weekday_initial[$weekday_name];
+-	}
+-
+-	/**
+-	 * Retrieve the translated weekday abbreviation.
+-	 *
+-	 * The weekday abbreviation is retrieved by the translated
+-	 * full weekday word.
+-	 *
+-	 * @since 2.1.0
+-	 * @access public
+-	 *
+-	 * @param string $weekday_name Full translated weekday word
+-	 * @return string Translated weekday abbreviation
+-	 */
+-	public function get_weekday_abbrev($weekday_name) {
+-		return $this->weekday_abbrev[$weekday_name];
+-	}
+-
+-	/**
+-	 * Retrieve the full translated month by month number.
+-	 *
+-	 * The $month_number parameter has to be a string
+-	 * because it must have the '0' in front of any number
+-	 * that is less than 10. Starts from '01' and ends at
+-	 * '12'.
+-	 *
+-	 * You can use an integer instead and it will add the
+-	 * '0' before the numbers less than 10 for you.
+-	 *
+-	 * @since 2.1.0
+-	 * @access public
+-	 *
+-	 * @param string|int $month_number '01' through '12'
+-	 * @return string Translated full month name
+-	 */
+-	public function get_month($month_number) {
+-		return $this->month[zeroise($month_number, 2)];
+-	}
+-
+-	/**
+-	 * Retrieve translated version of month abbreviation string.
+-	 *
+-	 * The $month_name parameter is expected to be the translated or
+-	 * translatable version of the month.
+-	 *
+-	 * @since 2.1.0
+-	 * @access public
+-	 *
+-	 * @param string $month_name Translated month to get abbreviated version
+-	 * @return string Translated abbreviated month
+-	 */
+-	public function get_month_abbrev($month_name) {
+-		return $this->month_abbrev[$month_name];
+-	}
+-
+-	/**
+-	 * Retrieve translated version of meridiem string.
+-	 *
+-	 * The $meridiem parameter is expected to not be translated.
+-	 *
+-	 * @since 2.1.0
+-	 * @access public
+-	 *
+-	 * @param string $meridiem Either 'am', 'pm', 'AM', or 'PM'. Not translated version.
+-	 * @return string Translated version
+-	 */
+-	public function get_meridiem($meridiem) {
+-		return $this->meridiem[$meridiem];
+-	}
+-
+-	/**
+-	 * Global variables are deprecated.
+-	 *
+-	 * For backward compatibility only.
+-	 *
+-	 * @deprecated For backward compatibility only.
+-	 * @access private
+-	 *
+-	 * @global array $weekday
+-	 * @global array $weekday_initial
+-	 * @global array $weekday_abbrev
+-	 * @global array $month
+-	 * @global array $month_abbrev
+-	 *
+-	 * @since 2.1.0
+-	 */
+-	public function register_globals() {
+-		$GLOBALS['weekday']         = $this->weekday;
+-		$GLOBALS['weekday_initial'] = $this->weekday_initial;
+-		$GLOBALS['weekday_abbrev']  = $this->weekday_abbrev;
+-		$GLOBALS['month']           = $this->month;
+-		$GLOBALS['month_abbrev']    = $this->month_abbrev;
+-	}
+-
+-	/**
+-	 * Constructor which calls helper methods to set up object variables
+-	 *
+-	 * @since 2.1.0
+-	 */
+-	public function __construct() {
+-		$this->init();
+-		$this->register_globals();
+-	}
+-
+-	/**
+-	 * Checks if current locale is RTL.
+-	 *
+-	 * @since 3.0.0
+-	 * @return bool Whether locale is RTL.
+-	 */
+-	public function is_rtl() {
+-		return 'rtl' == $this->text_direction;
+-	}
+-
+-	/**
+-	 * Register date/time format strings for general POT.
+-	 *
+-	 * Private, unused method to add some date/time formats translated
+-	 * on wp-admin/options-general.php to the general POT that would
+-	 * otherwise be added to the admin POT.
+-	 *
+-	 * @since 3.6.0
+-	 */
+-	public function _strings_for_pot() {
+-		/* translators: localized date format, see http://php.net/date */
+-		__( 'F j, Y' );
+-		/* translators: localized time format, see http://php.net/date */
+-		__( 'g:i a' );
+-		/* translators: localized date and time format, see http://php.net/date */
+-		__( 'F j, Y g:i a' );
+-	}
+-}
+-
+ /**
+  * Checks if current locale is RTL.
+  *
+@@ -407,3 +21,37 @@
+ 	global $wp_locale;
+ 	return $wp_locale->is_rtl();
+ }
++
++/**
++ * Switches the translations according to the given locale.
++ *
++ * @since 4.6.0
++ *
++ * @param string $locale The locale.
++ */
++function switch_to_locale( $locale ) {
++
++	/**
++	 * @global WP_Locale_Switcher $wp_locale_switcher
++	 */
++	global $wp_locale_switcher;
++
++	return $wp_locale_switcher->switch_to_locale( $locale );
++}
++
++/**
++ * Restores the translations according to the previous locale.
++ *
++ * @since 4.6.0
++ *
++ * @return string|false Locale on success, false on error.
++ */
++function restore_locale( $reset = false ) {
++
++	/**
++	 * @global WP_Locale_Switcher $wp_locale_switcher
++	 */
++	global $wp_locale_switcher;
++
++	return $wp_locale_switcher->restore_locale( $reset );
++}
+Index: src/wp-includes/pomo/mo.php
+===================================================================
+--- src/wp-includes/pomo/mo.php	(revision 37597)
++++ src/wp-includes/pomo/mo.php	(working copy)
+@@ -16,6 +16,26 @@
+ 	var $_nplurals = 2;
+ 
+ 	/**
++	 * Loaded MO file.
++	 *
++	 * @since 4.6.0
++	 * @var string
++	 */
++	private $filename = '';
++
++	/**
++	 * Returns the loaded MO file.
++	 *
++	 * @since 4.6.0
++	 *
++	 * @return string The loaded MO file.
++	 */
++	public function get_filename() {
++
++		return $this->filename;
++	}
++
++	/**
+ 	 * Fills up with the entries from MO file $filename
+ 	 *
+ 	 * @param string $filename MO file to load
+@@ -24,6 +44,7 @@
+ 		$reader = new POMO_FileReader($filename);
+ 		if (!$reader->is_resource())
+ 			return false;
++		$this->filename = (string) $filename;
+ 		return $this->import_from_reader($reader);
+ 	}
+ 
+@@ -299,4 +320,4 @@
+ 		return $this->_nplurals;
+ 	}
+ }
+-endif;
+\ No newline at end of file
++endif;
+Index: src/wp-settings.php
+===================================================================
+--- src/wp-settings.php	(revision 37597)
++++ src/wp-settings.php	(working copy)
+@@ -367,6 +367,13 @@
+  */
+ $GLOBALS['wp_locale'] = new WP_Locale();
+ 
++/**
++ * WordPress Locale Switcher object for switching locales.
++ * @global WP_Locale_Switcher $wp_locale_switcher
++ * @since 4.6.0
++ */
++$GLOBALS['wp_locale_switcher'] = new WP_Locale_Switcher();
++
+ // Load the functions for the active theme, for both parent and child theme if applicable.
+ if ( ! wp_installing() || 'wp-activate.php' === $pagenow ) {
+ 	if ( TEMPLATEPATH !== STYLESHEETPATH && file_exists( STYLESHEETPATH . '/functions.php' ) )
+Index: tests/phpunit/tests/locale/class-wp-switch-locale.php
+===================================================================
+--- tests/phpunit/tests/locale/class-wp-switch-locale.php	(nonexistent)
++++ tests/phpunit/tests/locale/class-wp-switch-locale.php	(working copy)
+@@ -0,0 +1,57 @@
++<?php
++
++/**
++ * @group l10n
++ * @group i18n
++ */
++class Tests_class_wp_switch_locale extends WP_UnitTestCase {
++
++	function test_switches_to_when_no_I18N() {
++
++		$this->assertFalse( switch_to_locale( 'es_ES' ) );
++	}
++
++	function test_switches_to_es() {
++		// We need to something in order to set the Global $l10n
++		$file = DIR_TESTDATA . '/pomo/simple.mo';
++		 load_textdomain( 'wp-tests-domain', $file );
++
++
++		$this->assertEquals( 'es_ES', switch_to_locale( 'es_ES' ) );
++
++		$this->assertEquals( 'es_ES', get_locale() );
++
++		$this->assertEquals( 'en_GB', switch_to_locale( 'en_GB' ) );
++
++		$this->assertEquals( 'en_GB', get_locale() );
++
++		// return early if you try to switch to the same locale
++		$this->assertEquals( 'en_GB', switch_to_locale( 'en_GB' ) );
++
++		$this->assertEquals( 'en_GB', get_locale() );
++
++		$this->assertEquals( 'es_ES', restore_locale() );
++
++		$this->assertEquals( 'es_ES', get_locale() );
++
++		$this->assertEquals( 'en_US', restore_locale( true ) );
++
++		$this->assertEquals( 'en_US', get_locale() );
++
++		$this->assertEquals( 'xx_XX', switch_to_locale( 'xx_XX' ) );
++
++		$this->assertEquals( 'xx_XX', get_locale() );
++
++		// tidy up
++		unload_textdomain( 'wp-tests-domain' );
++		global $l10n;
++		$l10n = null;
++	}
++
++
++	function test_switches_to_when_no_I18N_after() {
++
++		$this->assertFalse( switch_to_locale( 'es_ES' ) );
++		$this->assertFalse( switch_to_locale( 'en_GB' ) );
++	}
++}
+Index: tests/phpunit/tests/locale/test-locale.php
+===================================================================
+--- tests/phpunit/tests/locale/test-locale.php	(nonexistent)
++++ tests/phpunit/tests/locale/test-locale.php	(working copy)
+@@ -0,0 +1,53 @@
++<?php
++/**
++ * wordpress-develop.
++ * User: Paul
++ * Date: 2016-05-16
++ *
++ */
++
++if ( !defined( 'WPINC' ) ) {
++	die;
++}
++
++class test_Locale extends WP_UnitTestCase {
++
++//	static $fr_lanf_files = array(
++//		'admin-fr_FR.mo',
++//		'admin-fr_FR.po',
++//		'admin-network-fr_FR.mo',
++//		'admin-network-fr_FR.po',
++//		'continents-cities-fr_FR.mo',
++//		'continents-cities-fr_FR.po',
++//		'fr_FR.mo',
++//		'fr_FR.po',
++//	);
++//
++//
++//	/**
++//	 * pass a new locale into WP_locale and reset current locale
++//	 */
++//	function test_WP_locale(){
++//
++//		global $GLOBALS;
++//
++//		$GLOBALS['wp_locale'] = new WP_Locale( 'fr_FR' );
++//
++//		$this->assertEquals( 'fr_FR', get_locale() );
++//
++//		$this->assertEquals( 'dimanche', $GLOBALS['wp_locale']->weekday[0] );
++//
++//		foreach ( self::$fr_lanf_files as $file ) {
++//			$this->assertEquals( true, file_exists( WP_LANG_DIR . '/' . $file ) );
++//		}
++//
++//		// remove any fr lang files
++//		$this->remove_lang_files();
++//	}
++//
++//	function remove_lang_files() {
++//		foreach ( self::$fr_lanf_files as $file ) {
++//			$this->unlink( WP_LANG_DIR . '/' . $file );
++//		}
++//	}
++}
+Index: tests/phpunit/tests/locale/class-wp-switch-locale.php
+===================================================================
+--- tests/phpunit/tests/locale/class-wp-switch-locale.php	(nonexistent)
++++ tests/phpunit/tests/locale/class-wp-switch-locale.php	(working copy)
+@@ -0,0 +1,57 @@
++<?php
++
++/**
++ * @group l10n
++ * @group i18n
++ */
++class Tests_class_wp_switch_locale extends WP_UnitTestCase {
++
++	function test_switches_to_when_no_I18N() {
++
++		$this->assertFalse( switch_to_locale( 'es_ES' ) );
++	}
++
++	function test_switches_to_es() {
++		// We need to something in order to set the Global $l10n
++		$file = DIR_TESTDATA . '/pomo/simple.mo';
++		 load_textdomain( 'wp-tests-domain', $file );
++
++
++		$this->assertEquals( 'es_ES', switch_to_locale( 'es_ES' ) );
++
++		$this->assertEquals( 'es_ES', get_locale() );
++
++		$this->assertEquals( 'en_GB', switch_to_locale( 'en_GB' ) );
++
++		$this->assertEquals( 'en_GB', get_locale() );
++
++		// return early if you try to switch to the same locale
++		$this->assertEquals( 'en_GB', switch_to_locale( 'en_GB' ) );
++
++		$this->assertEquals( 'en_GB', get_locale() );
++
++		$this->assertEquals( 'es_ES', restore_locale() );
++
++		$this->assertEquals( 'es_ES', get_locale() );
++
++		$this->assertEquals( 'en_US', restore_locale( true ) );
++
++		$this->assertEquals( 'en_US', get_locale() );
++
++		$this->assertEquals( 'xx_XX', switch_to_locale( 'xx_XX' ) );
++
++		$this->assertEquals( 'xx_XX', get_locale() );
++
++		// tidy up
++		unload_textdomain( 'wp-tests-domain' );
++		global $l10n;
++		$l10n = null;
++	}
++
++
++	function test_switches_to_when_no_I18N_after() {
++
++		$this->assertFalse( switch_to_locale( 'es_ES' ) );
++		$this->assertFalse( switch_to_locale( 'en_GB' ) );
++	}
++}

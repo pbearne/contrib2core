@@ -66,7 +66,7 @@ class Tests_Xmlrpc_Getposttitle extends WP_UnitTestCase {
 	 */
 	function test_xmlrpc_getposttitle_space() {
 
-		$this->assertEquals( ' ' , xmlrpc_getposttitle( '<title> </title>' ) );
+		$this->assertEquals( '' , xmlrpc_getposttitle( '<title> </title>' ) );
 	}
 
 	/**
